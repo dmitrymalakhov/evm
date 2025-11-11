@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --background: #050607;
+  --foreground: #f6f1e6;
+  --accent: #b8473f;
+  --accent-muted: #71333a;
+  --accent-glow: #ff8640;
+  --steel: #3c414a;
+  --graphite: #161a1f;
+  --matrix: #08c870;
+  --scanline: rgba(255, 255, 255, 0.04);
+  --grain: rgba(255, 255, 255, 0.02);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-evm-accent: var(--accent);
+  --color-evm-accent-muted: var(--accent-muted);
+  --color-evm-steel: var(--steel);
+  --color-evm-panel: color-mix(in srgb, var(--graphite) 85%, #0d0f11 15%);
+  --color-evm-muted: #7f8a94;
+  --color-evm-matrix: var(--matrix);
+  --color-muted: #7f8a94;
+  --color-border: color-mix(in srgb, var(--steel) 60%, transparent);
+  --color-panel: color-mix(in srgb, var(--graphite) 85%, #0d0f11 15%);
+  --color-alert: var(--accent);
+  --color-positive: var(--matrix);
+  --shadow-elevator: 0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 20px 60px rgba(0, 0, 0, 0.45);
+  --border-lamp: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  min-height: 100vh;
+  background:
+      radial-gradient(circle at 15% 15%, rgba(255, 134, 64, 0.08), transparent 40%),
+      radial-gradient(circle at 85% 25%, rgba(184, 71, 63, 0.12), transparent 45%),
+      linear-gradient(180deg, rgba(22, 26, 31, 0.6), rgba(5, 6, 7, 0.9)),
+      color-mix(in srgb, var(--graphite) 90%, #020203 10%);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  letter-spacing: 0.01em;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      var(--scanline) 2px,
+      var(--scanline) 3px
+    ),
+    radial-gradient(circle, rgba(255, 255, 255, 0.06), transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cfilter id='n' x='0%' y='0%' width='100%' height='100%'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E");
+  opacity: 0.06;
+  z-index: 10;
+}
+
+.text-glitch {
+  position: relative;
+  isolation: isolate;
+}
+
+.text-glitch::before,
+.text-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: 0.45;
+}
+
+.text-glitch::before {
+  color: var(--matrix);
+  translate: 1px 0;
+}
+
+.text-glitch::after {
+  color: var(--accent-glow);
+  translate: -1px 0;
+}
+
+.crt-frame {
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow: var(--shadow-elevator);
+  background: color-mix(in srgb, var(--graphite) 88%, #060708 12%);
+  position: relative;
+  overflow: hidden;
+}
+
+.crt-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.07),
+    rgba(0, 0, 0, 0.3)
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0.5;
+}
