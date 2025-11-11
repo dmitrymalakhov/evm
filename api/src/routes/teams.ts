@@ -237,8 +237,11 @@ router.get("/:teamId/progress", (request, response) => {
 
   return response.json({
     progress: progress.progress,
+    totalPoints: progress.totalPoints,
     completedTasks: progress.completedTasks,
     unlockedKeys: progress.unlockedKeys,
+    completedWeeks: progress.completedWeeks,
+    weeklyStats: progress.weeklyStats,
   });
 });
 

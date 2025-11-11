@@ -1,19 +1,79 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 
 import { db } from "../db/client";
-import { levels, tasks } from "../db/schema";
+import { iterations, levels, tasks } from "../db/schema";
 
-export function getCurrentLevel() {
+function nowDate() {
+  return new Date();
+}
+
+export function getActiveIteration() {
+  const now = nowDate();
+  const active =
+    db
+      .select()
+      .from(iterations)
+      .where(and(lte(iterations.startsAt, now), gte(iterations.endsAt, now)))
+      .limit(1)
+      .get() ??
+    db
+      .select()
+      .from(iterations)
+      .orderBy(desc(iterations.startsAt))
+      .limit(1)
+      .get();
+  return active ?? null;
+}
+
+export function getIterationById(iterationId: string) {
   return db
     .select()
-    .from(levels)
-    .orderBy(levels.opensAt)
-    .limit(1)
+    .from(iterations)
+    .where(eq(iterations.id, iterationId))
     .get();
 }
 
-export function getLevelByWeek(week: number) {
-  return db.select().from(levels).where(eq(levels.week, week)).get();
+export function getCurrentLevel() {
+  const iteration = getActiveIteration();
+  if (!iteration) {
+    return null;
+  }
+
+  return db
+    .select()
+    .from(levels)
+    .where(
+      and(
+        eq(levels.iterationId, iteration.id),
+        eq(levels.week, iteration.currentWeek),
+      ),
+    )
+    .get();
+}
+
+export function getLevelByWeek(week: number, iterationId?: string) {
+  const iteration = iterationId
+    ? db
+        .select()
+        .from(iterations)
+        .where(eq(iterations.id, iterationId))
+        .get()
+    : getActiveIteration();
+
+  if (!iteration) {
+    return null;
+  }
+
+  return db
+    .select()
+    .from(levels)
+    .where(
+      and(
+        eq(levels.iterationId, iteration.id),
+        eq(levels.week, week),
+      ),
+    )
+    .get();
 }
 
 export function getLevelById(id: string) {
@@ -29,6 +89,7 @@ export function upsertLevel(data: typeof levels.$inferSelect) {
   if (existing) {
     db.update(levels)
       .set({
+        iterationId: data.iterationId ?? existing.iterationId,
         title: data.title,
         week: data.week,
         state: data.state,

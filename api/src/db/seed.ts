@@ -8,6 +8,7 @@ import {
   featureFlags,
   ideaVotes,
   ideas,
+  iterations,
   levels,
   sessions,
   taskSubmissions,
@@ -17,6 +18,7 @@ import {
   teams,
   thoughts,
   tickets,
+  userWeekProgress,
   users,
   validatorCodes,
 } from "./schema.js";
@@ -24,7 +26,7 @@ import {
 function resetTables() {
   db.run(sql`PRAGMA foreign_keys = OFF;`);
   const tables = [
-    "idea_votes",
+    "user_week_progress",
     "sessions",
     "task_submissions",
     "comments",
@@ -36,6 +38,7 @@ function resetTables() {
     "team_members",
     "tasks",
     "levels",
+    "iterations",
     "users",
     "teams",
     "feature_flags",
@@ -50,6 +53,18 @@ function resetTables() {
 }
 
 function seedCore() {
+  const iterationId = "iter-2025-11";
+  db.insert(iterations)
+    .values({
+      id: iterationId,
+      name: "Цикл реинициализации эмоций",
+      startsAt: new Date("2025-11-03T09:00:00Z"),
+      endsAt: new Date("2025-12-15T09:00:00Z"),
+      totalWeeks: 6,
+      currentWeek: 3,
+    })
+    .run();
+
   db.insert(teams).values({
     id: "t1",
     name: "Контур ЭМО-3",
@@ -120,6 +135,7 @@ function seedCore() {
 
   db.insert(levels).values({
     id: "lvl3",
+    iterationId,
     week: 3,
     title: "Эмоциональный контур",
     state: "open",
@@ -284,9 +300,39 @@ function seedCore() {
   db.insert(teamProgress).values({
     teamId: "t1",
     progress: 62,
+    totalPoints: 70,
     completedTasks: ["taskA"],
     unlockedKeys: ["alpha", "beta"],
+    completedWeeks: [1, 2],
+    weeklyStats: [
+      { week: 1, points: 30, tasksCompleted: 6 },
+      { week: 2, points: 40, tasksCompleted: 7 },
+    ],
   }).run();
+
+  db.insert(userWeekProgress).values([
+    {
+      id: "uwp-u1-w3",
+      userId: "u1",
+      iterationId,
+      week: 3,
+      completedTasks: ["taskA"],
+      pointsEarned: 50,
+      isCompleted: false,
+    },
+    {
+      id: "uwp-u2-w2",
+      userId: "u2",
+      iterationId,
+      week: 2,
+      completedTasks: Array.from({ length: 10 }, (_, idx) => `task-${idx + 1}`),
+      pointsEarned: 200,
+      isCompleted: true,
+      finishedAt: new Date("2025-11-03T14:00:00Z"),
+      keyId: "beta",
+      title: "Куратор Эмо-Контур-Альфа",
+    },
+  ]).run();
 
   db.insert(adminMetrics).values({
     id: 1,

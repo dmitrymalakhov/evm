@@ -19,6 +19,7 @@ export type Level = {
   state: LevelState;
   opensAt: string;
   closesAt: string;
+  iteration?: Iteration;
   config: {
     storyline: string;
     hint?: string;
@@ -105,6 +106,30 @@ export type MetricPoint = {
   value: number;
 };
 
+export type Iteration = {
+  id: string;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+  totalWeeks: number;
+  currentWeek: number;
+};
+
+export type TeamWeeklyStat = {
+  week: number;
+  points: number;
+  tasksCompleted: number;
+};
+
+export type TeamProgressSummary = {
+  progress: number;
+  totalPoints: number;
+  unlockedKeys: string[];
+  completedTasks: string[];
+  completedWeeks: number[];
+  weeklyStats: TeamWeeklyStat[];
+};
+
 export type AdminMetrics = {
   dau: MetricPoint[];
   wau: MetricPoint[];
@@ -114,6 +139,25 @@ export type AdminMetrics = {
 export type ValidatorResponse = {
   status: "valid" | "invalid";
   message: string;
+};
+
+export type UserWeekProgress = {
+  week: number;
+  tasksCompleted: number;
+  totalTasks: number;
+  pointsEarned: number;
+  isCompleted: boolean;
+  finishedAt?: string;
+  keyId?: string;
+  title?: string;
+};
+
+export type UserIterationProgress = {
+  iteration: Iteration;
+  weeks: UserWeekProgress[];
+  unlockedKeys: string[];
+  titles: Array<{ id: string; week: number; title: string; description: string }>;
+  totalPoints: number;
 };
 
 export type ThoughtFeed = {

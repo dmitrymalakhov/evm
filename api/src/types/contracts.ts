@@ -83,6 +83,30 @@ export type Team = {
   progress: number;
 };
 
+export type Iteration = {
+  id: string;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+  totalWeeks: number;
+  currentWeek: number;
+};
+
+export type TeamWeeklyStat = {
+  week: number;
+  points: number;
+  tasksCompleted: number;
+};
+
+export type TeamProgressSummary = {
+  progress: number;
+  totalPoints: number;
+  unlockedKeys: string[];
+  completedTasks: string[];
+  completedWeeks: number[];
+  weeklyStats: TeamWeeklyStat[];
+};
+
 export type ChatMessage = {
   id: string;
   teamId: string;
@@ -116,6 +140,25 @@ export type AdminMetrics = {
 export type ValidatorResponse = {
   status: "valid" | "invalid";
   message: string;
+};
+
+export type UserWeekProgress = {
+  week: number;
+  tasksCompleted: number;
+  totalTasks: number;
+  pointsEarned: number;
+  isCompleted: boolean;
+  finishedAt?: number;
+  keyId?: string;
+  title?: string;
+};
+
+export type UserIterationProgress = {
+  iteration: Iteration;
+  weeks: UserWeekProgress[];
+  unlockedKeys: string[];
+  titles: Array<{ id: string; week: number; title: string; description: string }>;
+  totalPoints: number;
 };
 
 export type ThoughtFeed = {

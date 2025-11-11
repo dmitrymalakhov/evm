@@ -61,13 +61,7 @@ export default function LevelWeekPage() {
         </h2>
       </div>
 
-      <ConsoleFrame className="space-y-6">
-        <TeletypeText text={storyline} speed={16} />
-        <ProgressBar
-          value={progress?.progress ?? 52}
-          label="Командный прогресс"
-        />
-      </ConsoleFrame>
+
 
       <div className="grid gap-6">
         {tasks.map((task, index) => (

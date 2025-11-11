@@ -15,6 +15,13 @@
       "when": 1731450000000,
       "tag": "0001_add_idea_votes",
       "breakpoints": false
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1731800000000,
+      "tag": "0002_add_iterations_and_progress",
+      "breakpoints": false
     }
   ]
 }

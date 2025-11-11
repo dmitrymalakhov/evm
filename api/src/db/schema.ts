@@ -15,7 +15,7 @@ import type {
     TaskConfig,
     TaskType,
     ValidatorResponse,
-} from "../types/contracts";
+} from "../types/contracts.js";
 
 export const users = sqliteTable(
     "users",
@@ -30,10 +30,10 @@ export const users = sqliteTable(
         tabNumber: text("tab_number").notNull(),
         otpCode: text("otp_code").notNull(),
         createdAt: integer("created_at", { mode: "timestamp" })
-            .default(() => new Date())
+            .$defaultFn(() => new Date())
             .notNull(),
         updatedAt: integer("updated_at", { mode: "timestamp" })
-            .default(() => new Date())
+            .$defaultFn(() => new Date())
             .notNull(),
     },
     (table) => ({
@@ -59,7 +59,7 @@ export const teamMembers = sqliteTable(
             .notNull()
             .references(() => users.id, { onDelete: "cascade" }),
         joinedAt: integer("joined_at", { mode: "timestamp" })
-            .default(() => new Date())
+            .$defaultFn(() => new Date())
             .notNull(),
     },
     (table) => ({
@@ -78,7 +78,7 @@ export const sessions = sqliteTable(
         refreshToken: text("refresh_token").notNull(),
         expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
         createdAt: integer("created_at", { mode: "timestamp" })
-            .default(() => new Date())
+            .$defaultFn(() => new Date())
             .notNull(),
     },
     (table) => ({
@@ -98,10 +98,21 @@ export const featureFlags = sqliteTable("feature_flags", {
     admin: integer("admin", { mode: "boolean" }).notNull().default(true),
 });
 
+export const iterations = sqliteTable("iterations", {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    startsAt: integer("starts_at", { mode: "timestamp" }).notNull(),
+    endsAt: integer("ends_at", { mode: "timestamp" }).notNull(),
+    totalWeeks: integer("total_weeks").notNull().default(6),
+    currentWeek: integer("current_week").notNull().default(1),
+});
+
 export const levels = sqliteTable(
     "levels",
     {
         id: text("id").primaryKey(),
+        iterationId: text("iteration_id")
+            .references(() => iterations.id, { onDelete: "set null" }),
         week: integer("week").notNull(),
         title: text("title").notNull(),
         state: text("state").notNull().$type<LevelState>(),
@@ -111,7 +122,10 @@ export const levels = sqliteTable(
         hint: text("hint"),
     },
     (table) => ({
-        weekIdx: uniqueIndex("levels_week_idx").on(table.week),
+        weekIdx: uniqueIndex("levels_iteration_week_idx").on(
+            table.iterationId,
+            table.week,
+        ),
     }),
 );
 
@@ -201,13 +215,52 @@ export const teamProgress = sqliteTable("team_progress", {
         .primaryKey()
         .references(() => teams.id, { onDelete: "cascade" }),
     progress: integer("progress").notNull().default(0),
+    totalPoints: integer("total_points").notNull().default(0),
     completedTasks: text("completed_tasks", { mode: "json" })
         .notNull()
         .$type<string[]>(),
     unlockedKeys: text("unlocked_keys", { mode: "json" })
         .notNull()
         .$type<string[]>(),
+    completedWeeks: text("completed_weeks", { mode: "json" })
+        .notNull()
+        .default(JSON.stringify([]))
+        .$type<number[]>(),
+    weeklyStats: text("weekly_stats", { mode: "json" })
+        .notNull()
+        .default(JSON.stringify([]))
+        .$type<Array<{ week: number; points: number; tasksCompleted: number }>>(),
 });
+
+export const userWeekProgress = sqliteTable(
+    "user_week_progress",
+    {
+        id: text("id").primaryKey(),
+        userId: text("user_id")
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        iterationId: text("iteration_id")
+            .notNull()
+            .references(() => iterations.id, { onDelete: "cascade" }),
+        week: integer("week").notNull(),
+        completedTasks: text("completed_tasks", { mode: "json" })
+            .notNull()
+            .default(JSON.stringify([]))
+            .$type<string[]>(),
+        pointsEarned: integer("points_earned").notNull().default(0),
+        isCompleted: integer("is_completed", { mode: "boolean" }).notNull().default(false),
+        finishedAt: integer("finished_at", { mode: "timestamp" }),
+        keyId: text("key_id"),
+        title: text("title"),
+    },
+    (table) => ({
+        uniqueUserWeek: uniqueIndex("user_week_iteration_idx").on(
+            table.userId,
+            table.iterationId,
+            table.week,
+        ),
+    }),
+);
 
 export const adminMetrics = sqliteTable("admin_metrics", {
     id: integer("id").primaryKey(),
@@ -249,6 +302,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     }),
     sessions: many(sessions),
     tickets: many(tickets),
+    weeklyProgress: many(userWeekProgress),
 }));
 
 export const teamsRelations = relations(teams, ({ many, one }) => ({
@@ -257,4 +311,31 @@ export const teamsRelations = relations(teams, ({ many, one }) => ({
     ideas: many(ideas),
     progress: one(teamProgress),
 }));
+
+export const iterationsRelations = relations(iterations, ({ many }) => ({
+    levels: many(levels),
+    weeklyProgress: many(userWeekProgress),
+}));
+
+export const levelsRelations = relations(levels, ({ one, many }) => ({
+    iteration: one(iterations, {
+        fields: [levels.iterationId],
+        references: [iterations.id],
+    }),
+    tasks: many(tasks),
+}));
+
+export const userWeekProgressRelations = relations(
+    userWeekProgress,
+    ({ one }) => ({
+        user: one(users, {
+            fields: [userWeekProgress.userId],
+            references: [users.id],
+        }),
+        iteration: one(iterations, {
+            fields: [userWeekProgress.iterationId],
+            references: [iterations.id],
+        }),
+    }),
+);
 

@@ -18,6 +18,7 @@ const router = Router();
 
 const levelSchema = z.object({
   id: z.string().optional(),
+  iterationId: z.string().optional(),
   week: z.number().int(),
   title: z.string().min(1, "Укажите название уровня"),
   state: z.enum(["scheduled", "open", "closed"]),
@@ -38,6 +39,7 @@ router.get("/levels", (_request, response) => {
   return response.json(
     levels.map((level) => ({
       id: level.id,
+      iterationId: level.iterationId ?? undefined,
       week: level.week,
       title: level.title,
       state: level.state,
@@ -63,6 +65,7 @@ router.post("/levels", (request, response) => {
     const levelId = payload.id ?? crypto.randomUUID();
     const level = upsertLevel({
       id: levelId,
+      iterationId: payload.iterationId,
       week: payload.week,
       title: payload.title,
       state: payload.state,
@@ -73,6 +76,7 @@ router.post("/levels", (request, response) => {
     });
     return response.status(201).json({
       id: level?.id ?? levelId,
+      iterationId: level?.iterationId ?? payload.iterationId,
       week: level?.week ?? payload.week,
       title: level?.title ?? payload.title,
       state: level?.state ?? payload.state,
@@ -112,6 +116,7 @@ router.put("/levels/:levelId", (request, response) => {
 
     const payload = levelUpdateSchema.parse(request.body);
     const updated = updateLevel(existing.id, {
+      iterationId: payload.iterationId ?? existing.iterationId,
       week: payload.week ?? existing.week,
       title: payload.title ?? existing.title,
       state: (payload.state ?? existing.state) as typeof existing.state,
@@ -123,6 +128,7 @@ router.put("/levels/:levelId", (request, response) => {
 
     return response.json({
       id: updated?.id ?? existing.id,
+      iterationId: updated?.iterationId ?? existing.iterationId ?? undefined,
       week: updated?.week ?? existing.week,
       title: updated?.title ?? existing.title,
       state: updated?.state ?? existing.state,

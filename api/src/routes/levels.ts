@@ -2,6 +2,8 @@ import { Router } from "express";
 
 import {
   getCurrentLevel,
+  getActiveIteration,
+  getIterationById,
   getLevelById,
   getLevelByWeek,
   getTasksForLevel,
@@ -11,7 +13,9 @@ const router = Router();
 
 router.get("/current", (_request, response) => {
   const level = getCurrentLevel();
-  if (!level) {
+  const iteration = getActiveIteration();
+
+  if (!level || !iteration) {
     return response
       .status(404)
       .json({ message: "Активный уровень не найден" });
@@ -24,6 +28,14 @@ router.get("/current", (_request, response) => {
     state: level.state,
     opensAt: level.opensAt,
     closesAt: level.closesAt,
+    iteration: {
+      id: iteration.id,
+      name: iteration.name,
+      currentWeek: iteration.currentWeek,
+      totalWeeks: iteration.totalWeeks,
+      startsAt: iteration.startsAt.toISOString(),
+      endsAt: iteration.endsAt.toISOString(),
+    },
     config: {
       storyline: level.storyline,
       hint: level.hint ?? undefined,
@@ -39,10 +51,19 @@ router.get("/week/:week", (request, response) => {
       .json({ message: "Некорректный номер недели" });
   }
 
-  const level = getLevelByWeek(weekNumber);
+  const iterationId =
+    typeof request.query.iterationId === "string"
+      ? request.query.iterationId
+      : undefined;
+  const level = getLevelByWeek(weekNumber, iterationId);
   if (!level) {
     return response.status(404).json({ message: "Уровень не найден" });
   }
+
+  const iteration =
+    level.iterationId !== null && level.iterationId !== undefined
+      ? getIterationById(level.iterationId)
+      : getActiveIteration();
 
   return response.json({
     id: level.id,
@@ -51,6 +72,16 @@ router.get("/week/:week", (request, response) => {
     state: level.state,
     opensAt: level.opensAt,
     closesAt: level.closesAt,
+    iteration: iteration
+      ? {
+          id: iteration.id,
+          name: iteration.name,
+          currentWeek: iteration.currentWeek,
+          totalWeeks: iteration.totalWeeks,
+          startsAt: iteration.startsAt.toISOString(),
+          endsAt: iteration.endsAt.toISOString(),
+        }
+      : undefined,
     config: {
       storyline: level.storyline,
       hint: level.hint ?? undefined,

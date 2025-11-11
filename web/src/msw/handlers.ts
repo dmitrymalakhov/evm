@@ -8,6 +8,7 @@ import {
   mockLevel,
   mockTasks,
   mockTeam,
+  mockTeamProgress,
   mockThoughtFeed,
   mockTicket,
   mockUser,
@@ -359,9 +360,10 @@ export const handlers = [
       );
     }
     return HttpResponse.json({
-      progress: mockTeam.progress,
-      completedTasks: ["taskA"],
-      unlockedKeys: Array.from(submittedKeys),
+      ...mockTeamProgress,
+      unlockedKeys: Array.from(
+        new Set([...mockTeamProgress.unlockedKeys, ...submittedKeys]),
+      ),
     });
   }),
 

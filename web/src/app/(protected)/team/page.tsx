@@ -33,12 +33,8 @@ export default function TeamPage() {
         </p>
       </div>
       <ConsoleFrame className="space-y-4">
-        <ProgressBar
-          value={progress?.progress ?? 60}
-          label="Совокупный прогресс команды"
-        />
         <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
-          Выполненные задачи: {progress?.completedTasks.length ?? 0} / 6
+          Командные баллы: {progress?.totalPoints ?? 0}
         </p>
       </ConsoleFrame>
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">

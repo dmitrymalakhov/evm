@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import { api } from "@/services/api";
-import type { Idea, Team } from "@/types/contracts";
+import type { Idea, Team, TeamProgressSummary } from "@/types/contracts";
 
 type ChatMessage = {
     id: string;
@@ -12,17 +12,11 @@ type ChatMessage = {
     createdAt: string;
 };
 
-type TeamProgress = {
-    progress: number;
-    completedTasks: string[];
-    unlockedKeys: string[];
-};
-
 type TeamState = {
     team: Team | null;
     chat: ChatMessage[];
     ideas: Idea[];
-    progress: TeamProgress | null;
+    progress: TeamProgressSummary | null;
     isLoading: boolean;
     teamId: string | null;
     error: string | null;

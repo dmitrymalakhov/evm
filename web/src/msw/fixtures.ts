@@ -3,9 +3,11 @@ import type {
   ChatMessage,
   Comment,
   Idea,
+  Iteration,
   Level,
   Task,
   Team,
+  TeamProgressSummary,
   Thought,
   ThoughtFeed,
   Ticket,
@@ -29,6 +31,15 @@ export const mockTeam: Team = {
   progress: 62,
 };
 
+export const mockIteration: Iteration = {
+  id: "iter-2025-11",
+  name: "Цикл реинициализации эмоций",
+  startsAt: "2025-11-03T09:00:00Z",
+  endsAt: "2025-12-15T09:00:00Z",
+  totalWeeks: 6,
+  currentWeek: 3,
+};
+
 export const mockLevel: Level = {
   id: "lvl3",
   week: 3,
@@ -36,6 +47,7 @@ export const mockLevel: Level = {
   state: "open",
   opensAt: "2025-11-10T09:00:00Z",
   closesAt: "2025-11-17T09:00:00Z",
+  iteration: mockIteration,
   config: {
     storyline: "Восстановите эмоциональный контур Матрицы.",
     hint: "Старайтесь поддерживать баланс сдержанности и сопереживания.",
@@ -174,6 +186,18 @@ export const mockIdeas: Idea[] = [
     userHasVoted: false,
   },
 ];
+
+export const mockTeamProgress: TeamProgressSummary = {
+  progress: 62,
+  totalPoints: 70,
+  completedTasks: ["taskA"],
+  unlockedKeys: ["alpha", "beta"],
+  completedWeeks: [1, 2],
+  weeklyStats: [
+    { week: 1, points: 30, tasksCompleted: 6 },
+    { week: 2, points: 40, tasksCompleted: 7 },
+  ],
+};
 
 export const mockThoughtFeed: ThoughtFeed = {
   thoughts: mockThoughts,

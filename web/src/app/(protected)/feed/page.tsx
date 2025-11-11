@@ -25,9 +25,8 @@ export default function FeedPage() {
         </p>
         <ThoughtsTicker />
       </div>
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="space-y-4">
         <FeedList />
-        <AnonThoughtForm />
       </div>
     </div>
   );

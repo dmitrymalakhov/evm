@@ -6,6 +6,7 @@ import {
   type SubmissionResponse,
   type Task,
   type Team,
+  type TeamProgressSummary,
   type Thought,
   type ThoughtFeed,
   type Ticket,
@@ -303,9 +304,7 @@ export const api = {
     }),
 
   getTeamProgress: (teamId: string) =>
-    request<{ progress: number; completedTasks: string[]; unlockedKeys: string[] }>(
-      `/teams/${teamId}/progress`,
-    ),
+    request<TeamProgressSummary>(`/teams/${teamId}/progress`),
 
   getAdminLevels: () => request<Level[]>("/admin/levels"),
 

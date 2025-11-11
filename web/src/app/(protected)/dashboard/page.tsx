@@ -66,6 +66,12 @@ export default function DashboardPage() {
             >
               Текущая неделя: {currentLevel?.title ?? "Загрузка..."}
             </motion.h3>
+            <p className="text-xs uppercase tracking-[0.22em] text-evm-muted">
+              Итерация:{" "}
+              {currentLevel?.iteration
+                ? `${currentLevel.iteration.name} • Неделя ${currentLevel.iteration.currentWeek}/${currentLevel.iteration.totalWeeks}`
+                : "синхронизация"}
+            </p>
             <TeletypeText
               text={
                 currentLevel?.config?.storyline ??
@@ -74,10 +80,7 @@ export default function DashboardPage() {
               speed={18}
             />
           </div>
-          <ProgressBar
-            value={progress?.progress ?? 42}
-            label="Прогресс недели"
-          />
+
           <Timer
             target={currentLevel?.closesAt ?? new Date(Date.now() + 86_400_000)}
             label="До закрытия фазы"
@@ -95,10 +98,10 @@ export default function DashboardPage() {
                   ? `${team.name} • ${team.slogan}`
                   : "Загрузка сведений о команде..."}
               </p>
-              <ProgressBar
-                value={progress?.progress ?? 62}
-                label="Совместный прогресс"
-              />
+
+              <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
+                Баллы команды: {progress?.totalPoints ?? 0}
+              </p>
             </CardContent>
           </Card>
           <Card>

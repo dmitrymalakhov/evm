@@ -9,7 +9,8 @@ type LoginPayload = {
 };
 
 export function loginWithOtp(payload: LoginPayload) {
-  const { tabNumber, otp } = payload;
+  const tabNumber = payload.tabNumber?.trim().toUpperCase() ?? "";
+  const otp = payload.otp?.trim() ?? "";
 
   if (!tabNumber || !otp) {
     throw new Error("Требуются табельный номер и одноразовый код.");
