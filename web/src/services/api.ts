@@ -292,6 +292,16 @@ export const api = {
       body: JSON.stringify(updates),
     }),
 
+  voteForTeamIdea: (teamId: string, ideaId: string) =>
+    request<Idea>(`/teams/${teamId}/ideas/${ideaId}/vote`, {
+      method: "POST",
+    }),
+
+  removeTeamIdeaVote: (teamId: string, ideaId: string) =>
+    request<Idea>(`/teams/${teamId}/ideas/${ideaId}/vote`, {
+      method: "DELETE",
+    }),
+
   getTeamProgress: (teamId: string) =>
     request<{ progress: number; completedTasks: string[]; unlockedKeys: string[] }>(
       `/teams/${teamId}/progress`,

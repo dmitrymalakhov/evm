@@ -162,6 +162,7 @@ export const mockIdeas: Idea[] = [
     description: "Собрать аудиообрывки об эмоциях участников.",
     votes: 12,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+    userHasVoted: false,
   },
   {
     id: "idea2",
@@ -170,6 +171,7 @@ export const mockIdeas: Idea[] = [
     description: "Игровой модуль, усиливающий сочувствие.",
     votes: 9,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+    userHasVoted: false,
   },
 ];
 

@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
     integer,
+    primaryKey,
     sqliteTable,
     text,
     uniqueIndex,
@@ -178,6 +179,22 @@ export const ideas = sqliteTable("ideas", {
     votes: integer("votes").notNull().default(0),
     createdAt: text("created_at").notNull(),
 });
+
+export const ideaVotes = sqliteTable(
+    "idea_votes",
+    {
+        ideaId: text("idea_id")
+            .notNull()
+            .references(() => ideas.id, { onDelete: "cascade" }),
+        userId: text("user_id")
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        createdAt: text("created_at").notNull(),
+    },
+    (table) => ({
+        pk: primaryKey({ name: "idea_votes_pk", columns: [table.ideaId, table.userId] }),
+    }),
+);
 
 export const teamProgress = sqliteTable("team_progress", {
     teamId: text("team_id")

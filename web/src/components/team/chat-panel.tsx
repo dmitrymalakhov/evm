@@ -48,7 +48,7 @@ export function ChatPanel() {
           Мини-чат команды
         </h3>
         <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
-          Сообщения синхронизируются через моковый канал
+          Сообщения сохраняются в базе данных команды
         </p>
       </div>
       <div className="max-h-72 space-y-3 overflow-y-auto pr-2">

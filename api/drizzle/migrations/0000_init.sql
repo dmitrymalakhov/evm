@@ -13,9 +13,12 @@ CREATE TABLE `users` (
   FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`) ON UPDATE no action ON DELETE set null
 );
 
+--> statement-breakpoint
 CREATE UNIQUE INDEX `users_email_idx` ON `users` (`email`);
+--> statement-breakpoint
 CREATE UNIQUE INDEX `users_tab_number_idx` ON `users` (`tab_number`);
 
+--> statement-breakpoint
 CREATE TABLE `teams` (
   `id` text PRIMARY KEY NOT NULL,
   `name` text NOT NULL,
@@ -23,6 +26,7 @@ CREATE TABLE `teams` (
   `progress` integer DEFAULT 0 NOT NULL
 );
 
+--> statement-breakpoint
 CREATE TABLE `team_members` (
   `team_id` text NOT NULL,
   `user_id` text NOT NULL,
@@ -31,8 +35,10 @@ CREATE TABLE `team_members` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
+--> statement-breakpoint
 CREATE UNIQUE INDEX `team_members_idx` ON `team_members` (`team_id`,`user_id`);
 
+--> statement-breakpoint
 CREATE TABLE `sessions` (
   `id` text PRIMARY KEY NOT NULL,
   `user_id` text NOT NULL,
@@ -43,9 +49,12 @@ CREATE TABLE `sessions` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
+--> statement-breakpoint
 CREATE UNIQUE INDEX `sessions_access_token_idx` ON `sessions` (`access_token`);
+--> statement-breakpoint
 CREATE UNIQUE INDEX `sessions_refresh_token_idx` ON `sessions` (`refresh_token`);
 
+--> statement-breakpoint
 CREATE TABLE `feature_flags` (
   `id` integer PRIMARY KEY NOT NULL,
   `realtime` integer DEFAULT 1 NOT NULL,
@@ -53,6 +62,7 @@ CREATE TABLE `feature_flags` (
   `admin` integer DEFAULT 1 NOT NULL
 );
 
+--> statement-breakpoint
 CREATE TABLE `levels` (
   `id` text PRIMARY KEY NOT NULL,
   `week` integer NOT NULL,
@@ -64,8 +74,10 @@ CREATE TABLE `levels` (
   `hint` text
 );
 
+--> statement-breakpoint
 CREATE UNIQUE INDEX `levels_week_idx` ON `levels` (`week`);
 
+--> statement-breakpoint
 CREATE TABLE `tasks` (
   `id` text PRIMARY KEY NOT NULL,
   `level_id` text NOT NULL,
@@ -77,6 +89,7 @@ CREATE TABLE `tasks` (
   FOREIGN KEY (`level_id`) REFERENCES `levels`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
+--> statement-breakpoint
 CREATE TABLE `comments` (
   `id` text PRIMARY KEY NOT NULL,
   `parent_id` text,
@@ -89,12 +102,14 @@ CREATE TABLE `comments` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
+--> statement-breakpoint
 CREATE TABLE `thoughts` (
   `id` text PRIMARY KEY NOT NULL,
   `text` text NOT NULL,
   `created_at` text NOT NULL
 );
 
+--> statement-breakpoint
 CREATE TABLE `tickets` (
   `id` text PRIMARY KEY NOT NULL,
   `user_id` text NOT NULL,
@@ -104,6 +119,7 @@ CREATE TABLE `tickets` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
+--> statement-breakpoint
 CREATE TABLE `chat_messages` (
   `id` text PRIMARY KEY NOT NULL,
   `team_id` text NOT NULL,
@@ -115,6 +131,7 @@ CREATE TABLE `chat_messages` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
+--> statement-breakpoint
 CREATE TABLE `ideas` (
   `id` text PRIMARY KEY NOT NULL,
   `team_id` text NOT NULL,
@@ -125,6 +142,7 @@ CREATE TABLE `ideas` (
   FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
+--> statement-breakpoint
 CREATE TABLE `team_progress` (
   `team_id` text PRIMARY KEY NOT NULL,
   `progress` integer DEFAULT 0 NOT NULL,
@@ -133,6 +151,7 @@ CREATE TABLE `team_progress` (
   FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
+--> statement-breakpoint
 CREATE TABLE `admin_metrics` (
   `id` integer PRIMARY KEY NOT NULL,
   `dau` text NOT NULL,
@@ -140,6 +159,7 @@ CREATE TABLE `admin_metrics` (
   `funnel` text NOT NULL
 );
 
+--> statement-breakpoint
 CREATE TABLE `validator_codes` (
   `id` text PRIMARY KEY NOT NULL,
   `code` text NOT NULL,
@@ -147,6 +167,7 @@ CREATE TABLE `validator_codes` (
   `message` text NOT NULL
 );
 
+--> statement-breakpoint
 CREATE TABLE `task_submissions` (
   `id` text PRIMARY KEY NOT NULL,
   `task_id` text NOT NULL,

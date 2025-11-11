@@ -6,7 +6,7 @@ let worker: ReturnType<typeof setupWorker> | null = null;
 
 export async function startMockServiceWorker() {
   if (typeof window === "undefined") return;
-  if (process.env.NEXT_PUBLIC_API_MOCKING === "disabled") return;
+  if (process.env.NEXT_PUBLIC_API_MOCKING !== "enabled") return;
   if (worker) return;
 
   worker = setupWorker(...handlers);

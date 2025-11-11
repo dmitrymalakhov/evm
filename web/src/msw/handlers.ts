@@ -33,6 +33,11 @@ let commentsStore = [...mockComments];
 let levelsStore: Level[] = [mockLevel];
 let ticketStore: Ticket = { ...mockTicket };
 let submittedKeys = new Set<string>();
+const ideaVoteLedger = new Map<string, Set<string>>();
+
+for (const idea of ideasStore) {
+  ideaVoteLedger.set(idea.id, new Set());
+}
 
 export const handlers = [
   http.post("/auth/login", async ({ request }) => {
@@ -216,7 +221,12 @@ export const handlers = [
         { status: 404 },
       );
     }
-    return HttpResponse.json(ideasStore);
+    return HttpResponse.json(
+      ideasStore.map((idea) => ({
+        ...idea,
+        userHasVoted: ideaVoteLedger.get(idea.id)?.has(mockUser.id) ?? idea.userHasVoted ?? false,
+      })),
+    );
   }),
 
   http.post("/teams/:id/ideas", async ({ params, request }) => {
@@ -241,8 +251,10 @@ export const handlers = [
       description: payload.description,
       votes: 0,
       createdAt: new Date().toISOString(),
+      userHasVoted: false,
     };
     ideasStore = [idea, ...ideasStore];
+    ideaVoteLedger.set(idea.id, new Set());
     return HttpResponse.json(idea, { status: 201 });
   }),
 
@@ -263,7 +275,79 @@ export const handlers = [
       );
     }
     ideasStore[idx] = { ...ideasStore[idx], ...payload };
+    const voters = ideaVoteLedger.get(params.ideaId as string);
+    const userHasVoted = voters?.has(mockUser.id) ?? ideasStore[idx].userHasVoted ?? false;
+    ideasStore[idx] = {
+      ...ideasStore[idx],
+      userHasVoted,
+    };
     return HttpResponse.json(ideasStore[idx]);
+  }),
+
+  http.post("/teams/:teamId/ideas/:ideaId/vote", async ({ params }) => {
+    await delay(250);
+    if (params.teamId !== mockTeam.id) {
+      return HttpResponse.json(
+        { message: "Команда не найдена" },
+        { status: 404 },
+      );
+    }
+    const idx = ideasStore.findIndex((idea) => idea.id === params.ideaId);
+    if (idx === -1) {
+      return HttpResponse.json(
+        { message: "Идея не найдена" },
+        { status: 404 },
+      );
+    }
+    const voters =
+      ideaVoteLedger.get(params.ideaId as string) ?? new Set<string>();
+    if (voters.has(mockUser.id)) {
+      return HttpResponse.json(
+        { message: "Вы уже голосовали за эту идею" },
+        { status: 409 },
+      );
+    }
+    voters.add(mockUser.id);
+    ideaVoteLedger.set(params.ideaId as string, voters);
+    ideasStore[idx] = {
+      ...ideasStore[idx],
+      votes: ideasStore[idx].votes + 1,
+      userHasVoted: true,
+    };
+    return HttpResponse.json(ideasStore[idx], { status: 200 });
+  }),
+
+  http.delete("/teams/:teamId/ideas/:ideaId/vote", async ({ params }) => {
+    await delay(250);
+    if (params.teamId !== mockTeam.id) {
+      return HttpResponse.json(
+        { message: "Команда не найдена" },
+        { status: 404 },
+      );
+    }
+    const idx = ideasStore.findIndex((idea) => idea.id === params.ideaId);
+    if (idx === -1) {
+      return HttpResponse.json(
+        { message: "Идея не найдена" },
+        { status: 404 },
+      );
+    }
+    const voters =
+      ideaVoteLedger.get(params.ideaId as string) ?? new Set<string>();
+    if (!voters.has(mockUser.id)) {
+      return HttpResponse.json(
+        { message: "У вас нет голосов за эту идею" },
+        { status: 409 },
+      );
+    }
+    voters.delete(mockUser.id);
+    ideaVoteLedger.set(params.ideaId as string, voters);
+    ideasStore[idx] = {
+      ...ideasStore[idx],
+      votes: Math.max(ideasStore[idx].votes - 1, 0),
+      userHasVoted: false,
+    };
+    return HttpResponse.json(ideasStore[idx], { status: 200 });
   }),
 
   http.get("/teams/:id/progress", async ({ params }) => {

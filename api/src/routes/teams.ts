@@ -9,6 +9,9 @@ import {
   getTeamProgress,
   listIdeas,
   updateIdea,
+  voteForIdea,
+  removeIdeaVote,
+  IdeaVoteError,
 } from "../services/team";
 import { getRequestUser } from "../utils/get-request-user";
 
@@ -79,7 +82,8 @@ router.get("/:teamId/ideas", (request, response) => {
   if (!team) {
     return response.status(404).json({ message: "Команда не найдена" });
   }
-  return response.json(listIdeas(team.id));
+  const user = getRequestUser(request);
+  return response.json(listIdeas(team.id, user?.id));
 });
 
 router.post("/:teamId/ideas", (request, response) => {
@@ -99,7 +103,7 @@ router.post("/:teamId/ideas", (request, response) => {
       title: payload.title.trim(),
       description: payload.description.trim(),
     });
-    return response.status(201).json(idea);
+    return response.status(201).json({ ...idea, userHasVoted: false });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return response.status(422).json({ message: error.issues[0].message });
@@ -134,7 +138,10 @@ router.put("/:teamId/ideas/:ideaId", (request, response) => {
     if (!updated) {
       return response.status(404).json({ message: "Идея не найдена" });
     }
-    return response.json(updated);
+    const ideaWithFlag =
+      listIdeas(team.id, user.id).find((idea) => idea.id === updated.id) ??
+      { ...updated, userHasVoted: false };
+    return response.json(ideaWithFlag);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return response.status(422).json({ message: error.issues[0].message });
@@ -145,6 +152,74 @@ router.put("/:teamId/ideas/:ideaId", (request, response) => {
     return response.status(500).json({
       message:
         error instanceof Error ? error.message : "Не удалось обновить идею",
+    });
+  }
+});
+
+router.post("/:teamId/ideas/:ideaId/vote", (request, response) => {
+  const team = getTeam(request.params.teamId);
+  if (!team) {
+    return response.status(404).json({ message: "Команда не найдена" });
+  }
+
+  try {
+    const user = getRequestUser(request, true);
+    if (!user) {
+      return response.status(401).json({ message: "Пользователь не авторизован" });
+    }
+
+    const updated = voteForIdea(team.id, request.params.ideaId, user!.id);
+    if (!updated) {
+      return response.status(404).json({ message: "Идея не найдена" });
+    }
+
+    return response.status(200).json({ ...updated, userHasVoted: true });
+  } catch (error) {
+    if (error instanceof IdeaVoteError && error.message === "already_voted") {
+      return response.status(409).json({
+        message: "Вы уже голосовали за эту идею",
+      });
+    }
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error ? error.message : "Не удалось сохранить голос",
+    });
+  }
+});
+
+router.delete("/:teamId/ideas/:ideaId/vote", (request, response) => {
+  const team = getTeam(request.params.teamId);
+  if (!team) {
+    return response.status(404).json({ message: "Команда не найдена" });
+  }
+
+  try {
+    const user = getRequestUser(request, true);
+    if (!user) {
+      return response.status(401).json({ message: "Пользователь не авторизован" });
+    }
+
+    const updated = removeIdeaVote(team.id, request.params.ideaId, user.id);
+    if (!updated) {
+      return response.status(404).json({ message: "Идея не найдена" });
+    }
+
+    return response.status(200).json({ ...updated, userHasVoted: false });
+  } catch (error) {
+    if (error instanceof IdeaVoteError && error.message === "not_voted") {
+      return response.status(409).json({
+        message: "У вас нет голосов за эту идею",
+      });
+    }
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error ? error.message : "Не удалось отменить голос",
     });
   }
 });

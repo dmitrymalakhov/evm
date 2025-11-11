@@ -99,6 +99,7 @@ export type Idea = {
   description: string;
   votes: number;
   createdAt: string;
+  userHasVoted?: boolean;
 };
 
 export type MetricPoint = {

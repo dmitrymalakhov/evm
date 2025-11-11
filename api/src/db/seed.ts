@@ -6,6 +6,7 @@ import {
   chatMessages,
   comments,
   featureFlags,
+  ideaVotes,
   ideas,
   levels,
   sessions,
@@ -23,6 +24,7 @@ import {
 function resetTables() {
   db.run(sql`PRAGMA foreign_keys = OFF;`);
   const tables = [
+    "idea_votes",
     "sessions",
     "task_submissions",
     "comments",
@@ -248,7 +250,7 @@ function seedCore() {
       teamId: "t1",
       title: "Артефакт памяти",
       description: "Собрать аудиообрывки об эмоциях участников.",
-      votes: 12,
+      votes: 2,
       createdAt: new Date(now - 1000 * 60 * 60 * 6).toISOString(),
     },
     {
@@ -256,8 +258,26 @@ function seedCore() {
       teamId: "t1",
       title: "Симулятор эмпатии",
       description: "Игровой модуль, усиливающий сочувствие.",
-      votes: 9,
+      votes: 1,
       createdAt: new Date(now - 1000 * 60 * 60 * 12).toISOString(),
+    },
+  ]).run();
+
+  db.insert(ideaVotes).values([
+    {
+      ideaId: "idea1",
+      userId: "u1",
+      createdAt: new Date(now - 1000 * 60 * 55).toISOString(),
+    },
+    {
+      ideaId: "idea1",
+      userId: "u2",
+      createdAt: new Date(now - 1000 * 60 * 50).toISOString(),
+    },
+    {
+      ideaId: "idea2",
+      userId: "u3",
+      createdAt: new Date(now - 1000 * 60 * 70).toISOString(),
     },
   ]).run();
 

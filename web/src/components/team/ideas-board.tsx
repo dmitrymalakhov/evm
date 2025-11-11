@@ -11,11 +11,12 @@ import { useSessionStore } from "@/store/use-session-store";
 import { formatRelative } from "@/lib/utils";
 
 export function IdeasBoard() {
-  const { ideas, createIdea, hydrate, updateIdea, teamId } = useTeamStore();
+  const { ideas, createIdea, hydrate, voteIdea, teamId } = useTeamStore();
   const { user } = useSessionStore();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.teamId && !teamId) {
@@ -44,14 +45,22 @@ export function IdeasBoard() {
     }
   }
 
-  async function handleVote(id: string, currentVotes: number) {
+  async function handleVote(id: string) {
+    setProcessingId(id);
     try {
-      await updateIdea(id, { votes: currentVotes + 1 });
+      const updated = await voteIdea(id);
+      toast.success(updated.userHasVoted ? "Голос учтён" : "Голос отменён", {
+        description: updated.userHasVoted
+          ? "Спасибо за участие в голосовании."
+          : "Вы можете проголосовать за идею снова.",
+      });
     } catch (error) {
       toast.error("Голос не принят", {
         description:
           error instanceof Error ? error.message : "Сбой канала голосования",
       });
+    } finally {
+      setProcessingId(null);
     }
   }
 
@@ -108,9 +117,10 @@ export function IdeasBoard() {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => handleVote(idea.id, idea.votes)}
+                onClick={() => handleVote(idea.id)}
+                disabled={processingId === idea.id}
               >
-                Голосовать
+                {idea.userHasVoted ? "Отменить голос" : "Голосовать"}
               </Button>
             </div>
           </div>
