@@ -17,11 +17,21 @@ const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
 };
 
-async function request<T>(
-  input: RequestInfo,
-  init?: RequestInit,
-): Promise<T> {
-  const response = await fetch(input, {
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+
+function resolveUrl(input: RequestInfo | URL) {
+  if (typeof input === "string") {
+    if (input.startsWith("http://") || input.startsWith("https://")) {
+      return input;
+    }
+    return `${API_BASE_URL}${input.startsWith("/") ? "" : "/"}${input}`;
+  }
+  return input;
+}
+
+async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+  const response = await fetch(resolveUrl(input), {
     ...init,
     headers: { ...DEFAULT_HEADERS, ...init?.headers },
   });
