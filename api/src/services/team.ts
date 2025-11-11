@@ -1,9 +1,6 @@
 import { and, count, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/client.js";
-type TransactionClient = Parameters<
-  Parameters<typeof db.transaction>[0]
->[0];
 import {
   chatMessages,
   ideaVotes,
@@ -11,6 +8,10 @@ import {
   teamProgress,
   teams,
 } from "../db/schema.js";
+
+type TransactionClient = Parameters<
+  Parameters<typeof db.transaction>[0]
+>[0];
 
 export function getTeam(teamId: string) {
   return db.select().from(teams).where(eq(teams.id, teamId)).get();
@@ -111,7 +112,7 @@ export function updateIdea(teamId: string, ideaId: string, updates: Partial<type
     .get();
 }
 
-export class IdeaVoteError extends Error {}
+export class IdeaVoteError extends Error { }
 
 export function voteForIdea(teamId: string, ideaId: string, userId: string) {
   return db.transaction((tx: TransactionClient) => {

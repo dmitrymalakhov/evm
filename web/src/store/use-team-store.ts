@@ -34,6 +34,11 @@ type TeamState = {
     refreshProgress: () => Promise<void>;
 };
 
+const normalizeIdea = (idea: Idea): Idea => ({
+    ...idea,
+    userHasVoted: Boolean(idea.userHasVoted),
+});
+
 export const useTeamStore = create<TeamState>((set, get) => ({
     team: null,
     chat: [],
@@ -54,7 +59,7 @@ export const useTeamStore = create<TeamState>((set, get) => ({
             set({
                 team,
                 chat,
-                ideas,
+                ideas: ideas.map(normalizeIdea),
                 progress,
                 isLoading: false,
             });
@@ -79,7 +84,9 @@ export const useTeamStore = create<TeamState>((set, get) => ({
         if (!teamId) {
             throw new Error("Команда не определена");
         }
-        const idea = await api.createTeamIdea(teamId, { title, description });
+        const idea = normalizeIdea(
+            await api.createTeamIdea(teamId, { title, description }),
+        );
         set((state) => ({
             ideas: [idea, ...state.ideas],
         }));
@@ -90,7 +97,9 @@ export const useTeamStore = create<TeamState>((set, get) => ({
         if (!teamId) {
             throw new Error("Команда не определена");
         }
-        const idea = await api.updateTeamIdea(teamId, ideaId, updates);
+        const idea = normalizeIdea(
+            await api.updateTeamIdea(teamId, ideaId, updates),
+        );
         set((state) => ({
             ideas: state.ideas.map((item) =>
                 item.id === idea.id ? idea : item,
@@ -104,9 +113,11 @@ export const useTeamStore = create<TeamState>((set, get) => ({
             throw new Error("Команда не определена");
         }
         const current = get().ideas.find((idea) => idea.id === ideaId);
-        const idea = current?.userHasVoted
-            ? await api.removeTeamIdeaVote(teamId, ideaId)
-            : await api.voteForTeamIdea(teamId, ideaId);
+        const idea = normalizeIdea(
+            current?.userHasVoted
+                ? await api.removeTeamIdeaVote(teamId, ideaId)
+                : await api.voteForTeamIdea(teamId, ideaId),
+        );
         set((state) => ({
             ideas: state.ideas.map((item) =>
                 item.id === idea.id ? idea : item,
