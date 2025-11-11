@@ -28,7 +28,8 @@ export function loginWithOtp(payload: LoginPayload) {
   const accessToken = crypto.randomUUID();
   const refreshToken = crypto.randomUUID();
   const expiresIn = 60 * 60; // seconds
-  const expiresAt = Date.now() + expiresIn * 1000;
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + expiresIn * 1000);
 
   const existingSession = db
     .select()
@@ -42,18 +43,21 @@ export function loginWithOtp(payload: LoginPayload) {
         accessToken,
         refreshToken,
         expiresAt,
-        createdAt: Date.now(),
+        createdAt: now,
       })
       .where(eq(sessions.id, existingSession.id))
       .run();
   } else {
-    db.insert(sessions).values({
-      id: crypto.randomUUID(),
-      userId: user.id,
-      accessToken,
-      refreshToken,
-      expiresAt,
-    });
+    db.insert(sessions)
+      .values({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        accessToken,
+        refreshToken,
+        expiresAt,
+        createdAt: now,
+      })
+      .run();
   }
 
   return {

@@ -8,7 +8,11 @@ export function getRequestUser(request: Request, requireUser = false) {
     ? authorization.slice("Bearer ".length)
     : null;
 
-  const user = getUserByToken(token) ?? getDefaultUser();
+  const user = getUserByToken(token);
+
+  if (user) {
+    return user;
+  }
 
   if (requireUser && !user) {
     const error = new Error("Пользователь не авторизован");
@@ -16,6 +20,6 @@ export function getRequestUser(request: Request, requireUser = false) {
     throw error;
   }
 
-  return user;
+  return getDefaultUser();
 }
 

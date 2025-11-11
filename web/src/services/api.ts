@@ -13,12 +13,107 @@ import {
   type ValidatorResponse,
 } from "@/types/contracts";
 
+const isBrowser = typeof window !== "undefined";
 const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
 };
+const TOKEN_STORAGE_KEY = "evm.auth";
+
+type StoredTokens = {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+};
+
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:4000";
+
+let authTokens: StoredTokens | null = null;
+let tokensRestored = !isBrowser;
+
+function storeTokens(tokens: StoredTokens | null) {
+  authTokens = tokens;
+  tokensRestored = true;
+  if (!isBrowser) return;
+  try {
+    if (tokens) {
+      window.localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokens));
+    } else {
+      window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage errors (e.g. private mode)
+  }
+}
+
+function restoreTokensFromStorage() {
+  if (tokensRestored) return authTokens;
+  tokensRestored = true;
+  if (!isBrowser) return authTokens;
+
+  try {
+    const raw = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!raw) {
+      storeTokens(null);
+      return authTokens;
+    }
+    const parsed = JSON.parse(raw) as Partial<StoredTokens>;
+    if (
+      typeof parsed.accessToken === "string" &&
+      typeof parsed.refreshToken === "string" &&
+      typeof parsed.expiresAt === "number"
+    ) {
+      storeTokens({
+        accessToken: parsed.accessToken,
+        refreshToken: parsed.refreshToken,
+        expiresAt: parsed.expiresAt,
+      });
+      return authTokens;
+    }
+  } catch {
+    // Fall through to clear tokens
+  }
+
+  storeTokens(null);
+  return authTokens;
+}
+
+function getAccessToken() {
+  const tokens = restoreTokensFromStorage();
+  if (!tokens) return null;
+  if (tokens.expiresAt <= Date.now()) {
+    storeTokens(null);
+    return null;
+  }
+  return tokens.accessToken;
+}
+
+function setAuthTokens(payload: {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}) {
+  const expiresAt = Date.now() + Math.max(payload.expiresIn - 30, 0) * 1000;
+  storeTokens({
+    accessToken: payload.accessToken,
+    refreshToken: payload.refreshToken,
+    expiresAt,
+  });
+}
+
+function clearAuthTokens() {
+  storeTokens(null);
+}
 
 function resolveUrl(input: RequestInfo | URL) {
   if (typeof input === "string") {
@@ -30,15 +125,65 @@ function resolveUrl(input: RequestInfo | URL) {
   return input;
 }
 
+function createHeaders(init?: HeadersInit) {
+  const headers = new Headers(DEFAULT_HEADERS);
+
+  if (init instanceof Headers) {
+    init.forEach((value, key) => headers.set(key, value));
+  } else if (Array.isArray(init)) {
+    init.forEach(([key, value]) => headers.set(key, value));
+  } else if (init) {
+    Object.entries(init).forEach(([key, value]) => {
+      if (typeof value === "undefined") return;
+      headers.set(key, value as string);
+    });
+  }
+
+  const token = getAccessToken();
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  return headers;
+}
+
+async function parseErrorMessage(response: Response) {
+  const contentType = response.headers.get("content-type");
+  if (contentType?.includes("application/json")) {
+    try {
+      const data = await response.json();
+      if (data && typeof data === "object" && "message" in data) {
+        const message = data.message;
+        if (typeof message === "string") {
+          return message;
+        }
+      }
+      return JSON.stringify(data);
+    } catch {
+      // ignore json parse errors
+    }
+  }
+  try {
+    const text = await response.text();
+    if (text) return text;
+  } catch {
+    // ignore text parse errors
+  }
+  return response.statusText;
+}
+
 async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const response = await fetch(resolveUrl(input), {
     ...init,
-    headers: { ...DEFAULT_HEADERS, ...init?.headers },
+    headers: createHeaders(init?.headers),
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || response.statusText);
+    if (response.status === 401) {
+      clearAuthTokens();
+    }
+    const message = await parseErrorMessage(response);
+    throw new ApiError(message || response.statusText, response.status);
   }
 
   if (response.status === 204) {
@@ -50,14 +195,27 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
 }
 
 export const api = {
-  login: (payload: { tabNumber: string; otp: string }) =>
-    request<{ access_token: string; refresh_token: string; expires_in: number }>(
-      "/auth/login",
-      {
-        method: "POST",
-        body: JSON.stringify(payload),
-      },
-    ),
+  login: async (payload: { tabNumber: string; otp: string }) => {
+    const result = await request<{
+      access_token: string;
+      refresh_token: string;
+      expires_in: number;
+    }>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    setAuthTokens({
+      accessToken: result.access_token,
+      refreshToken: result.refresh_token,
+      expiresIn: result.expires_in,
+    });
+
+    return result;
+  },
+  logout: () => {
+    clearAuthTokens();
+  },
 
   getFeatures: () =>
     request<{ realtime: boolean; payments: boolean; admin: boolean }>(
@@ -167,5 +325,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ code }),
     }),
+};
+
+export const authSession = {
+  clear: clearAuthTokens,
+  hasValidAccessToken: () => Boolean(getAccessToken()),
 };
 

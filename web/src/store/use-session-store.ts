@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { api } from "@/services/api";
+import { ApiError, api, authSession } from "@/services/api";
 import type { User } from "@/types/contracts";
 
 type FeatureFlags = {
@@ -20,15 +20,17 @@ type SessionState = {
   logout: () => void;
 };
 
+const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
+  realtime: true,
+  payments: false,
+  admin: true,
+};
+
 export const useSessionStore = create<SessionState>((set) => ({
   user: null,
   isLoading: false,
   hasHydrated: false,
-  featureFlags: {
-    realtime: true,
-    payments: false,
-    admin: true,
-  },
+  featureFlags: DEFAULT_FEATURE_FLAGS,
   error: null,
   async login(tabNumber, otp) {
     set({ isLoading: true, error: null });
@@ -45,6 +47,9 @@ export const useSessionStore = create<SessionState>((set) => ({
         isLoading: false,
       });
     } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        authSession.clear();
+      }
       set({
         error: error instanceof Error ? error.message : "Ошибка входа",
         isLoading: false,
@@ -53,8 +58,17 @@ export const useSessionStore = create<SessionState>((set) => ({
     }
   },
   async loadProfile() {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
+      if (!authSession.hasValidAccessToken()) {
+        set({
+          user: null,
+          featureFlags: DEFAULT_FEATURE_FLAGS,
+          hasHydrated: true,
+          isLoading: false,
+        });
+        return;
+      }
       const [user, features] = await Promise.all([
         api.getMe(),
         api.getFeatures(),
@@ -67,6 +81,17 @@ export const useSessionStore = create<SessionState>((set) => ({
         error: null,
       });
     } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        authSession.clear();
+        set({
+          user: null,
+          featureFlags: DEFAULT_FEATURE_FLAGS,
+          hasHydrated: true,
+          isLoading: false,
+          error: null,
+        });
+        return;
+      }
       set({
         error: error instanceof Error ? error.message : "Ошибка загрузки профиля",
         isLoading: false,
@@ -74,9 +99,13 @@ export const useSessionStore = create<SessionState>((set) => ({
     }
   },
   logout() {
+    api.logout();
     set({
       user: null,
+      featureFlags: DEFAULT_FEATURE_FLAGS,
       hasHydrated: false,
+      isLoading: false,
+      error: null,
     });
   },
 }));

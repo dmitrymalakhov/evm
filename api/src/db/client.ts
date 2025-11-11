@@ -23,10 +23,22 @@ if (!fs.existsSync(sqliteDirectory)) {
 const sqlite = new Database(databaseFile);
 export const db = drizzle(sqlite, { schema });
 
-const migrationsFolder = path.join(process.cwd(), "drizzle", "migrations");
+const drizzleRoot = path.join(process.cwd(), "drizzle");
+const migrationsFolder = path.join(drizzleRoot, "migrations");
 const shouldMigrate = process.env.DRIZZLE_MIGRATE !== "false";
 
 if (shouldMigrate && fs.existsSync(migrationsFolder)) {
+    const metaSource = path.join(drizzleRoot, "meta", "_journal.json");
+    const metaTarget = path.join(migrationsFolder, "meta", "_journal.json");
+    if (fs.existsSync(metaSource)) {
+        const metaDir = path.dirname(metaTarget);
+        if (!fs.existsSync(metaDir)) {
+            fs.mkdirSync(metaDir, { recursive: true });
+        }
+        if (!fs.existsSync(metaTarget)) {
+            fs.copyFileSync(metaSource, metaTarget);
+        }
+    }
     migrate(db, { migrationsFolder });
 }
 

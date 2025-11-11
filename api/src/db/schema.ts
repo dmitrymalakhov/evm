@@ -29,10 +29,10 @@ export const users = sqliteTable(
         tabNumber: text("tab_number").notNull(),
         otpCode: text("otp_code").notNull(),
         createdAt: integer("created_at", { mode: "timestamp" })
-            .default(() => Date.now())
+            .default(() => new Date())
             .notNull(),
         updatedAt: integer("updated_at", { mode: "timestamp" })
-            .default(() => Date.now())
+            .default(() => new Date())
             .notNull(),
     },
     (table) => ({
@@ -58,7 +58,7 @@ export const teamMembers = sqliteTable(
             .notNull()
             .references(() => users.id, { onDelete: "cascade" }),
         joinedAt: integer("joined_at", { mode: "timestamp" })
-            .default(() => Date.now())
+            .default(() => new Date())
             .notNull(),
     },
     (table) => ({
@@ -77,7 +77,7 @@ export const sessions = sqliteTable(
         refreshToken: text("refresh_token").notNull(),
         expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
         createdAt: integer("created_at", { mode: "timestamp" })
-            .default(() => Date.now())
+            .default(() => new Date())
             .notNull(),
     },
     (table) => ({

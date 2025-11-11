@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 
-import { db } from "./client";
+import { db } from "./client.js";
 import {
   adminMetrics,
   chatMessages,
@@ -18,7 +18,7 @@ import {
   tickets,
   users,
   validatorCodes,
-} from "./schema";
+} from "./schema.js";
 
 function resetTables() {
   db.run(sql`PRAGMA foreign_keys = OFF;`);
@@ -48,17 +48,26 @@ function resetTables() {
 }
 
 function seedCore() {
+  db.insert(teams).values({
+    id: "t1",
+    name: "Контур ЭМО-3",
+    slogan: "Отладим чувства Матрицы.",
+    progress: 62,
+  }).run();
+
   db.insert(users).values([
     {
       id: "u1",
       email: "agent@evm.local",
       name: "ОПЕРАТОР-17",
-      role: "user",
+      role: "admin",
       teamId: "t1",
       title: "Инженер 2-го разряда",
       avatarUrl: "/avatars/op17.png",
       tabNumber: "0001-17",
       otpCode: "123456",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     {
       id: "u2",
@@ -70,6 +79,8 @@ function seedCore() {
       avatarUrl: "/avatars/curator.png",
       tabNumber: "0002-01",
       otpCode: "654321",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     {
       id: "u3",
@@ -78,6 +89,8 @@ function seedCore() {
       role: "user",
       tabNumber: "0003-09",
       otpCode: "111111",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     {
       id: "u4",
@@ -86,27 +99,22 @@ function seedCore() {
       role: "admin",
       tabNumber: "0004-07",
       otpCode: "222222",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
-  ]);
-
-  db.insert(teams).values({
-    id: "t1",
-    name: "Контур ЭМО-3",
-    slogan: "Отладим чувства Матрицы.",
-    progress: 62,
-  });
+  ]).run();
 
   db.insert(teamMembers).values([
-    { teamId: "t1", userId: "u1" },
-    { teamId: "t1", userId: "u2" },
-  ]);
+    { teamId: "t1", userId: "u1", joinedAt: new Date() },
+    { teamId: "t1", userId: "u2", joinedAt: new Date() },
+  ]).run();
 
   db.insert(featureFlags).values({
     id: 1,
     realtime: true,
     payments: false,
     admin: true,
-  });
+  }).run();
 
   db.insert(levels).values({
     id: "lvl3",
@@ -117,7 +125,7 @@ function seedCore() {
     closesAt: "2025-11-17T09:00:00Z",
     storyline: "Восстановите эмоциональный контур Матрицы.",
     hint: "Старайтесь поддерживать баланс сдержанности и сопереживания.",
-  });
+  }).run();
 
   db.insert(tasks).values([
     {
@@ -143,7 +151,7 @@ function seedCore() {
         choices: ["A", "B", "C"],
       },
     },
-  ]);
+  ]).run();
 
   const now = Date.now();
   db.insert(thoughts).values([
@@ -172,7 +180,7 @@ function seedCore() {
       text: "ЖДУ СИГНАЛА ОТ КОМАНДЫ «КОНТУР ЭМО-3».",
       createdAt: new Date(now - 1000 * 60 * 140).toISOString(),
     },
-  ]);
+  ]).run();
 
   db.insert(comments).values([
     {
@@ -205,7 +213,7 @@ function seedCore() {
       createdAt: new Date(now - 1000 * 60 * 10).toISOString(),
       status: "ok",
     },
-  ]);
+  ]).run();
 
   db.insert(tickets).values({
     id: "tk1",
@@ -213,7 +221,7 @@ function seedCore() {
     qr: "EVM-QR-MOCK-123",
     pdfUrl: "/mock/ticket.pdf",
     status: "issued",
-  });
+  }).run();
 
   db.insert(chatMessages).values([
     {
@@ -232,7 +240,7 @@ function seedCore() {
       body: "Проверил шифр. Всё совпадает.",
       createdAt: new Date(now - 1000 * 60 * 3).toISOString(),
     },
-  ]);
+  ]).run();
 
   db.insert(ideas).values([
     {
@@ -251,14 +259,14 @@ function seedCore() {
       votes: 9,
       createdAt: new Date(now - 1000 * 60 * 60 * 12).toISOString(),
     },
-  ]);
+  ]).run();
 
   db.insert(teamProgress).values({
     teamId: "t1",
     progress: 62,
     completedTasks: ["taskA"],
     unlockedKeys: ["alpha", "beta"],
-  });
+  }).run();
 
   db.insert(adminMetrics).values({
     id: 1,
@@ -282,7 +290,7 @@ function seedCore() {
       { step: "Активация EVM", value: 1120 },
       { step: "Получили билет", value: 760 },
     ],
-  });
+  }).run();
 
   db.insert(validatorCodes).values([
     {
@@ -297,7 +305,7 @@ function seedCore() {
       status: "invalid",
       message: "Код не найден в журнале.",
     },
-  ]);
+  ]).run();
 }
 
 function main() {
@@ -315,8 +323,9 @@ function main() {
       userId: "u1",
       accessToken: "access-mock-token",
       refreshToken: "refresh-mock-token",
-      expiresAt: Date.now() + 1000 * 60 * 60 * 24,
-    });
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      createdAt: new Date(),
+    }).run();
   }
 
   console.log("Database seeded successfully.");

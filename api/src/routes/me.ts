@@ -6,7 +6,7 @@ const router = Router();
 
 router.get("/", (request, response) => {
   try {
-    const user = getRequestUser(request);
+    const user = getRequestUser(request, true);
     if (!user) {
       return response.status(404).json({ message: "Пользователь не найден" });
     }
