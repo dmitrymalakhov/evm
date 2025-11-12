@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { LucideProps } from "lucide-react";
+import { LucideProps, Shield } from "lucide-react";
 
 import { NAV_LINKS } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
@@ -65,6 +65,32 @@ export function Sidebar() {
             </Link>
           );
         })}
+        {(user?.role === "admin" || featureFlags.admin) && (
+          <Link
+            href="/admin"
+            className={cn(
+              "group relative flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold uppercase tracking-[0.22em] transition-all",
+              pathname.startsWith("/admin")
+                ? "bg-evm-accent/15 text-evm-accent"
+                : "text-evm-muted hover:bg-white/5 hover:text-foreground",
+            )}
+          >
+            <Shield
+              className={cn(
+                "h-4 w-4 transition-colors",
+                pathname.startsWith("/admin") ? "text-evm-accent" : "text-evm-muted",
+              )}
+            />
+            Admin
+            {pathname.startsWith("/admin") ? (
+              <motion.span
+                layoutId="sidebar-active"
+                className="absolute inset-0 -z-10 rounded-md border border-evm-accent/50 shadow-[0_0_12px_rgba(184,71,63,0.35)]"
+                transition={{ duration: 0.2 }}
+              />
+            ) : null}
+          </Link>
+        )}
       </nav>
 
       <div className="rounded-md border border-evm-steel/50 bg-black/30 p-4">

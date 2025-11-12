@@ -1,22 +1,13 @@
  "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { Toaster } from "sonner";
-
-import { startMockServiceWorker } from "@/msw/browser";
 
 type ProvidersProps = {
   children: ReactNode;
 };
 
 export function Providers({ children }: ProvidersProps) {
-  useEffect(() => {
-    startMockServiceWorker().catch((error) => {
-      // eslint-disable-next-line no-console
-      console.warn("Failed to start MSW", error);
-    });
-  }, []);
-
   return (
     <>
       {children}

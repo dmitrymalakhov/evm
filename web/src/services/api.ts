@@ -2,6 +2,7 @@ import {
   type AdminMetrics,
   type Comment,
   type Idea,
+  type Iteration,
   type Level,
   type SubmissionResponse,
   type Task,
@@ -328,6 +329,100 @@ export const api = {
     }),
 
   getAdminMetrics: () => request<AdminMetrics>("/admin/metrics"),
+
+  getAdminIterations: () => request<Iteration[]>("/admin/iterations"),
+
+  setAdminIterationWeek: (iterationId: string, currentWeek: number) =>
+    request<Iteration>(`/admin/iterations/${iterationId}/current-week`, {
+      method: "POST",
+      body: JSON.stringify({ currentWeek }),
+    }),
+
+  getAdminTasks: (levelId: string) =>
+    request<Task[]>(`/admin/levels/${levelId}/tasks`),
+
+  createAdminTask: (
+    levelId: string,
+    payload: Omit<Task, "id" | "levelId"> & { id?: string },
+  ) =>
+    request<Task>(`/admin/levels/${levelId}/tasks`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  updateAdminTask: (
+    taskId: string,
+    payload: Partial<Omit<Task, "id">> & { levelId?: string },
+  ) =>
+    request<Task>(`/admin/tasks/${taskId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
+  deleteAdminTask: (taskId: string) =>
+    request<null>(`/admin/tasks/${taskId}`, {
+      method: "DELETE",
+    }),
+
+  getAdminSubmissions: () =>
+    request<
+      Array<{
+        id: string;
+        taskId: string;
+        userId: string;
+        payload: Record<string, unknown>;
+        status: string;
+        hint: string | null;
+        message: string | null;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string | null;
+        taskTitle: string | null;
+        taskType: string | null;
+      }>
+    >("/admin/moderation/submissions"),
+
+  getAdminSubmission: (submissionId: string) =>
+    request<{
+      id: string;
+      taskId: string;
+      userId: string;
+      payload: Record<string, unknown>;
+      status: string;
+      hint: string | null;
+      message: string | null;
+      createdAt: string;
+      userName: string | null;
+      userEmail: string | null;
+      taskTitle: string | null;
+      taskType: string | null;
+    }>(`/admin/moderation/submissions/${submissionId}`),
+
+  updateAdminSubmission: (
+    submissionId: string,
+    payload: {
+      status?: "accepted" | "rejected" | "pending";
+      hint?: string | null;
+      message?: string | null;
+    },
+  ) =>
+    request<{
+      id: string;
+      taskId: string;
+      userId: string;
+      payload: Record<string, unknown>;
+      status: string;
+      hint: string | null;
+      message: string | null;
+      createdAt: string;
+      userName: string | null;
+      userEmail: string | null;
+      taskTitle: string | null;
+      taskType: string | null;
+    }>(`/admin/moderation/submissions/${submissionId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
 
   validatePass: (code: string) =>
     request<ValidatorResponse>("/validator/check", {

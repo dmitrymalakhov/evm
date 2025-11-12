@@ -127,3 +127,37 @@ export function getTask(taskId: string) {
   return db.select().from(tasks).where(eq(tasks.id, taskId)).get();
 }
 
+export function updateTask(
+  taskId: string,
+  data: Partial<typeof tasks.$inferSelect>,
+) {
+  db.update(tasks)
+    .set(data)
+    .where(eq(tasks.id, taskId))
+    .run();
+  return db.select().from(tasks).where(eq(tasks.id, taskId)).get();
+}
+
+export function deleteTask(taskId: string) {
+  const task = getTask(taskId);
+  if (!task) {
+    return null;
+  }
+  db.delete(tasks)
+    .where(eq(tasks.id, taskId))
+    .run();
+  return task;
+}
+
+export function listIterations() {
+  return db.select().from(iterations).orderBy(desc(iterations.startsAt)).all();
+}
+
+export function setIterationCurrentWeek(iterationId: string, week: number) {
+  db.update(iterations)
+    .set({ currentWeek: week })
+    .where(eq(iterations.id, iterationId))
+    .run();
+  return getIterationById(iterationId);
+}
+
