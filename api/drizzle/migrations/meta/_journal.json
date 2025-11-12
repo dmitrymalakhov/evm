@@ -22,6 +22,13 @@
       "when": 1731800000000,
       "tag": "0002_add_iterations_and_progress",
       "breakpoints": false
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1732000000000,
+      "tag": "0003_add_user_actions",
+      "breakpoints": false
     }
   ]
 }

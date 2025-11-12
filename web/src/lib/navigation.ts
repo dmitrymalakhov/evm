@@ -8,7 +8,7 @@ export const NAV_LINKS = [
   },
   {
     label: "Levels",
-    href: "/levels/3",
+    href: "/levels",
     icon: Compass,
   },
   {

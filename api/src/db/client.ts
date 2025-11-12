@@ -39,7 +39,13 @@ if (shouldMigrate && fs.existsSync(migrationsFolder)) {
             fs.copyFileSync(metaSource, metaTarget);
         }
     }
-    migrate(db, { migrationsFolder });
+    try {
+        migrate(db, { migrationsFolder });
+    } catch (error) {
+        // If migration fails, log the error but don't crash the app
+        // This can happen if migrations are already applied or if there's a schema mismatch
+        console.error("Migration error (may be safe to ignore if migrations are already applied):", error);
+    }
 }
 
 export type DatabaseClient = typeof db;

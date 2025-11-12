@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { ConsoleFrame } from "@/components/ui/console-frame";
 import { Button } from "@/components/ui/button";
@@ -9,15 +10,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { AnalyticsPanel } from "@/components/admin/analytics-panel";
 import { MetricsPanel } from "@/components/admin/metrics-panel";
 import { api } from "@/services/api";
 import type { AdminMetrics, Level, Task, Iteration } from "@/types/contracts";
+
+// Helper function to resolve photo URL to absolute URL
+function resolvePhotoUrl(photo: string): string {
+  if (photo.startsWith("http://") || photo.startsWith("https://")) {
+    return photo;
+  }
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:4000";
+  return photo.startsWith("/") ? `${apiBaseUrl}${photo}` : `${apiBaseUrl}/${photo}`;
+}
 
 type TaskSubmission = {
   id: string;
   taskId: string;
   userId: string;
-  payload: Record<string, unknown>;
+  payload: {
+    photos?: string[];
+    survey?: Record<string, string>;
+    text?: string;
+    [key: string]: unknown;
+  };
   status: string;
   hint: string | null;
   message: string | null;
@@ -37,6 +53,8 @@ export default function AdminPage() {
   const [iterations, setIterations] = useState<Iteration[]>([]);
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeIteration, setActiveIteration] = useState<Iteration | null>(null);
+  const [collapsedWeeks, setCollapsedWeeks] = useState<Set<string>>(new Set());
 
   // Level form state
   const [showLevelForm, setShowLevelForm] = useState(false);
@@ -85,6 +103,14 @@ export default function AdminPage() {
         setLevels(levelsResponse);
         setMetrics(metricsResponse);
         setIterations(iterationsResponse);
+
+        // Find active iteration (the one with the most recent start date or current date range)
+        const now = new Date();
+        const active = iterationsResponse.find(
+          (iter) =>
+            new Date(iter.startsAt) <= now && new Date(iter.endsAt) >= now
+        ) || iterationsResponse[0];
+        setActiveIteration(active || null);
 
         // Load tasks for each level
         const tasksMap: Record<string, Task[]> = {};
@@ -340,6 +366,9 @@ export default function AdminPage() {
       </div>
 
       <ConsoleFrame className="space-y-6">
+        {/* Iteration Management Section */}
+
+
         {/* Levels Section */}
         <Card>
           <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -352,80 +381,156 @@ export default function AdminPage() {
             <Button onClick={handleCreateLevel}>Создать уровень</Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            {levels.map((level) => (
-              <div
-                key={level.id}
-                className="space-y-3 rounded-md border border-evm-steel/40 bg-black/40 p-4"
-              >
-                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em]">
-                      Неделя {level.week}: {level.title}
-                    </p>
-                    <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
-                      Состояние: {level.state} • Открывается{" "}
-                      {new Date(level.opensAt).toLocaleString("ru-RU")}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleEditLevel(level)}
-                    >
-                      Редактировать
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleCreateTask(level.id)}
-                    >
-                      Добавить задачу
-                    </Button>
-                  </div>
-                </div>
+            {levels.map((level) => {
+              const isCollapsed = collapsedWeeks.has(level.id);
+              const isActive =
+                activeIteration &&
+                level.week === activeIteration.currentWeek &&
+                (level.iterationId === activeIteration.id ||
+                  (!level.iterationId && activeIteration));
 
-                {/* Tasks for this level */}
-                {tasks[level.id] && tasks[level.id].length > 0 && (
-                  <div className="mt-3 space-y-2 border-t border-evm-steel/20 pt-3">
-                    <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
-                      Задачи ({tasks[level.id].length}):
-                    </p>
-                    {tasks[level.id].map((task) => (
-                      <div
-                        key={task.id}
-                        className="flex items-center justify-between rounded border border-evm-steel/20 bg-black/20 p-2"
+              return (
+                <div
+                  key={level.id}
+                  className="space-y-3 rounded-md border border-evm-steel/40 bg-black/40 p-4"
+                >
+                  <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                    <div className="flex items-start gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() => {
+                          setCollapsedWeeks((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(level.id)) {
+                              next.delete(level.id);
+                            } else {
+                              next.add(level.id);
+                            }
+                            return next;
+                          });
+                        }}
                       >
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em]">
-                            {task.title} ({task.type})
+                        {isCollapsed ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronUp className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold uppercase tracking-[0.2em]">
+                            Неделя {level.week}: {level.title}
                           </p>
-                          <p className="text-xs text-evm-muted">
-                            {task.points} баллов
-                          </p>
+                          {isActive && (
+                            <span className="rounded-md border border-evm-accent/50 bg-evm-accent/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.16em] text-evm-accent">
+                              Активная
+                            </span>
+                          )}
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditTask(task)}
-                          >
-                            Редактировать
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteTask(task.id, level.id)}
-                          >
-                            Удалить
-                          </Button>
-                        </div>
+                        <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
+                          Состояние: {level.state} • Открывается{" "}
+                          {new Date(level.opensAt).toLocaleString("ru-RU")}
+                        </p>
                       </div>
-                    ))}
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
+                      {activeIteration && (
+                        <Button
+                          size="sm"
+                          variant={isActive ? "default" : "outline"}
+                          onClick={async () => {
+                            try {
+                              const updated = await api.setAdminIterationWeek(
+                                activeIteration.id,
+                                level.week
+                              );
+                              setActiveIteration(updated);
+                              const updatedIterations = await api.getAdminIterations();
+                              setIterations(updatedIterations);
+                              toast.success(`Неделя ${level.week} установлена как активная`);
+                              const updatedLevels = await api.getAdminLevels();
+                              setLevels(updatedLevels);
+                            } catch (error) {
+                              toast.error("Не удалось установить активную неделю", {
+                                description:
+                                  error instanceof Error ? error.message : "Ошибка обновления",
+                              });
+                            }
+                          }}
+                          className={isActive ? "bg-evm-accent text-white" : ""}
+                        >
+                          {isActive ? "Активна" : "Сделать активной"}
+                        </Button>
+                      )}
+
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleEditLevel(level)}
+                      >
+                        Редактировать
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleCreateTask(level.id)}
+                      >
+                        Добавить задачу
+                      </Button>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* Tasks for this level */}
+                  {!isCollapsed && tasks[level.id] && tasks[level.id].length > 0 && (
+                    <div className="mt-3 space-y-2 border-t border-evm-steel/20 pt-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
+                        Задачи ({tasks[level.id].length}):
+                      </p>
+                      {tasks[level.id].map((task) => (
+                        <div
+                          key={task.id}
+                          className="flex items-center justify-between rounded border border-evm-steel/20 bg-black/20 p-2"
+                        >
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em]">
+                              {task.title} ({task.type})
+                            </p>
+                            <p className="text-xs text-evm-muted">
+                              {task.points} баллов
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditTask(task)}
+                            >
+                              Редактировать
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteTask(task.id, level.id)}
+                            >
+                              Удалить
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!isCollapsed && (!tasks[level.id] || tasks[level.id].length === 0) && (
+                    <div className="mt-3 border-t border-evm-steel/20 pt-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
+                        Задачи отсутствуют
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {levels.length === 0 ? (
               <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
                 Уровни не найдены. Добавьте первый.
@@ -459,9 +564,61 @@ export default function AdminPage() {
                     </p>
                     <div className="mt-2 rounded border border-evm-steel/20 bg-black/20 p-2">
                       <p className="text-xs text-evm-muted">Ответ:</p>
-                      <pre className="mt-1 text-xs">
-                        {JSON.stringify(submission.payload, null, 2)}
-                      </pre>
+                      <div className="mt-1 space-y-2">
+                        {/* Display photos if present */}
+                        {submission.payload.photos &&
+                          Array.isArray(submission.payload.photos) &&
+                          submission.payload.photos.length > 0 && (
+                            <div className="space-y-1">
+                              <p className="text-xs font-semibold text-evm-muted">
+                                Фото ({submission.payload.photos.length}):
+                              </p>
+                              <div className="grid grid-cols-2 gap-1">
+                                {(submission.payload.photos as string[])
+                                  .slice(0, 2)
+                                  .map((photo: string, index: number) => (
+                                    <img
+                                      key={index}
+                                      src={resolvePhotoUrl(photo)}
+                                      alt={`Photo ${index + 1}`}
+                                      className="h-16 w-full rounded object-cover"
+                                      onError={(e) => {
+                                        console.error("Failed to load image:", resolvePhotoUrl(photo));
+                                        (e.target as HTMLImageElement).style.display = "none";
+                                      }}
+                                    />
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                        {/* Display survey if present */}
+                        {submission.payload.survey &&
+                          typeof submission.payload.survey === "object" &&
+                          submission.payload.survey !== null &&
+                          Object.keys(submission.payload.survey).length > 0 && (
+                            <p className="text-xs text-evm-muted">
+                              Опрос: {Object.keys(submission.payload.survey).length}{" "}
+                              ответов
+                            </p>
+                          )}
+
+                        {/* Display text if present */}
+                        {submission.payload.text && typeof submission.payload.text === "string" && (
+                          <p className="text-xs text-foreground line-clamp-2">
+                            {submission.payload.text}
+                          </p>
+                        )}
+
+                        {/* Fallback */}
+                        {!submission.payload.photos &&
+                          !submission.payload.survey &&
+                          !submission.payload.text && (
+                            <pre className="text-xs">
+                              {JSON.stringify(submission.payload, null, 2) as string}
+                            </pre>
+                          )}
+                      </div>
                     </div>
                     {submission.message && (
                       <p className="mt-2 text-xs text-evm-muted">
@@ -490,18 +647,31 @@ export default function AdminPage() {
         </Card>
 
         {metrics ? <MetricsPanel metrics={metrics} /> : null}
+
+        {/* Analytics Section */}
+        <AnalyticsPanel />
       </ConsoleFrame>
 
       {/* Level Form Modal */}
       {showLevelForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <Card className="w-full max-w-2xl">
-            <CardHeader>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowLevelForm(false);
+            }
+          }}
+        >
+          <Card
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="flex-shrink-0">
               <CardTitle>
                 {editingLevel ? "Редактировать уровень" : "Создать уровень"}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 overflow-y-auto flex-1 min-h-0">
               <div className="space-y-2">
                 <Label htmlFor="week">Неделя</Label>
                 <Input
@@ -608,30 +778,40 @@ export default function AdminPage() {
                   }
                 />
               </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowLevelForm(false)}
-                >
-                  Отмена
-                </Button>
-                <Button onClick={handleSaveLevel}>Сохранить</Button>
-              </div>
             </CardContent>
+            <div className="flex justify-end gap-2 p-6 border-t border-evm-steel/20 flex-shrink-0">
+              <Button
+                variant="ghost"
+                onClick={() => setShowLevelForm(false)}
+              >
+                Отмена
+              </Button>
+              <Button onClick={handleSaveLevel}>Сохранить</Button>
+            </div>
           </Card>
         </div>
       )}
 
       {/* Task Form Modal */}
       {showTaskForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <Card className="w-full max-w-2xl">
-            <CardHeader>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowTaskForm(false);
+            }
+          }}
+        >
+          <Card
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="flex-shrink-0">
               <CardTitle>
                 {editingTask ? "Редактировать задачу" : "Создать задачу"}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 overflow-y-auto flex-1 min-h-0">
               <div className="space-y-2">
                 <Label htmlFor="taskType">Тип задачи</Label>
                 <select
@@ -695,28 +875,38 @@ export default function AdminPage() {
                   className="font-mono text-xs"
                 />
               </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowTaskForm(false)}
-                >
-                  Отмена
-                </Button>
-                <Button onClick={handleSaveTask}>Сохранить</Button>
-              </div>
             </CardContent>
+            <div className="flex justify-end gap-2 p-6 border-t border-evm-steel/20 flex-shrink-0">
+              <Button
+                variant="ghost"
+                onClick={() => setShowTaskForm(false)}
+              >
+                Отмена
+              </Button>
+              <Button onClick={handleSaveTask}>Сохранить</Button>
+            </div>
           </Card>
         </div>
       )}
 
       {/* Submission Moderation Modal */}
       {selectedSubmission && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <Card className="w-full max-w-2xl">
-            <CardHeader>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedSubmission(null);
+            }
+          }}
+        >
+          <Card
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="flex-shrink-0">
               <CardTitle>Модерация отправки</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 overflow-y-auto flex-1 min-h-0">
               <div className="rounded border border-evm-steel/20 bg-black/20 p-3">
                 <p className="text-xs text-evm-muted">Задача:</p>
                 <p className="text-sm font-semibold">
@@ -727,9 +917,82 @@ export default function AdminPage() {
                   {selectedSubmission.userName || selectedSubmission.userEmail}
                 </p>
                 <p className="mt-2 text-xs text-evm-muted">Ответ:</p>
-                <pre className="mt-1 overflow-auto text-xs">
-                  {JSON.stringify(selectedSubmission.payload, null, 2)}
-                </pre>
+                <div className="mt-1 space-y-2">
+                  {/* Display photos if present */}
+                  {selectedSubmission.payload.photos &&
+                    Array.isArray(selectedSubmission.payload.photos) &&
+                    selectedSubmission.payload.photos.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-evm-muted">
+                          Загруженные фото:
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(selectedSubmission.payload.photos as string[]).map(
+                            (photo: string, index: number) => (
+                              <img
+                                key={index}
+                                src={resolvePhotoUrl(photo)}
+                                alt={`Photo ${index + 1}`}
+                                className="h-32 w-full rounded-md object-cover"
+                                onError={(e) => {
+                                  console.error("Failed to load image:", resolvePhotoUrl(photo));
+                                  (e.target as HTMLImageElement).style.display = "none";
+                                }}
+                              />
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Display survey answers if present */}
+                  {selectedSubmission.payload.survey &&
+                    typeof selectedSubmission.payload.survey === "object" &&
+                    selectedSubmission.payload.survey !== null &&
+                    Object.keys(selectedSubmission.payload.survey).length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-evm-muted">
+                          Ответы на опрос:
+                        </p>
+                        <div className="space-y-1">
+                          {Object.entries(
+                            selectedSubmission.payload.survey as Record<
+                              string,
+                              string
+                            >,
+                          ).map(([questionId, answer]) => (
+                            <div key={questionId} className="text-xs">
+                              <span className="font-semibold text-evm-muted">
+                                {questionId}:
+                              </span>{" "}
+                              <span className="text-foreground">{answer}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Display text answer if present */}
+                  {selectedSubmission.payload.text && typeof selectedSubmission.payload.text === "string" && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-evm-muted">
+                        Текстовый ответ:
+                      </p>
+                      <p className="text-xs text-foreground">
+                        {selectedSubmission.payload.text}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Fallback to JSON if no structured data */}
+                  {!selectedSubmission.payload.photos &&
+                    !selectedSubmission.payload.survey &&
+                    !selectedSubmission.payload.text && (
+                      <pre className="overflow-auto text-xs">
+                        {JSON.stringify(selectedSubmission.payload, null, 2) as string}
+                      </pre>
+                    )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="submissionStatus">Статус</Label>
@@ -772,16 +1035,16 @@ export default function AdminPage() {
                   }
                 />
               </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setSelectedSubmission(null)}
-                >
-                  Отмена
-                </Button>
-                <Button onClick={handleSaveSubmission}>Сохранить</Button>
-              </div>
             </CardContent>
+            <div className="flex justify-end gap-2 p-6 border-t border-evm-steel/20 flex-shrink-0">
+              <Button
+                variant="ghost"
+                onClick={() => setSelectedSubmission(null)}
+              >
+                Отмена
+              </Button>
+              <Button onClick={handleSaveSubmission}>Сохранить</Button>
+            </div>
           </Card>
         </div>
       )}

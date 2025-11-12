@@ -60,6 +60,9 @@ Thumbs.db
 *.db
 api/sqlite/
 
+# uploads
+api/uploads/
+
 # environments
 .env*
 .envrc

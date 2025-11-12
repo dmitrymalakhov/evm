@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TaskSubmissionForm } from "@/components/level/task-submission-form";
 import { useLevelStore } from "@/store/use-level-store";
 import type { Task } from "@/types/contracts";
 import { cn } from "@/lib/utils";
@@ -12,13 +14,37 @@ import { cn } from "@/lib/utils";
 type TaskCardProps = {
   task: Task;
   index: number;
-  onSubmit: () => Promise<void>;
+  onSubmit: (payload: {
+    photos?: string[];
+    survey?: Record<string, string>;
+    text?: string;
+  }) => Promise<void>;
+  onUploadFiles?: (files: File[]) => Promise<Array<{ filename: string; url: string; originalName: string; size: number; mimetype: string }>>;
 };
 
-export function TaskCard({ task, index, onSubmit }: TaskCardProps) {
+export function TaskCard({ task, index, onSubmit, onUploadFiles }: TaskCardProps) {
   const submissions = useLevelStore((state) => state.submissions);
   const submission = submissions[task.id];
+  const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const isCompleted = submission?.status === "accepted";
+  const isPending = submission?.status === "pending";
+  const isRejected = submission?.status === "rejected";
+
+  const handleSubmit = async (payload: {
+    photos?: string[];
+    survey?: Record<string, string>;
+    text?: string;
+  }) => {
+    setIsSubmitting(true);
+    try {
+      await onSubmit(payload);
+      setShowForm(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <motion.div
@@ -30,6 +56,8 @@ export function TaskCard({ task, index, onSubmit }: TaskCardProps) {
         className={cn(
           "border-evm-steel/40 bg-black/40",
           isCompleted && "border-evm-matrix/50 shadow-[0_0_18px_rgba(8,200,112,0.3)]",
+          isPending && "border-evm-accent/50 shadow-[0_0_18px_rgba(255,193,7,0.2)]",
+          isRejected && "border-red-500/50 shadow-[0_0_18px_rgba(239,68,68,0.2)]",
         )}
       >
         <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -47,20 +75,64 @@ export function TaskCard({ task, index, onSubmit }: TaskCardProps) {
           <p className="text-sm leading-relaxed text-foreground">
             {task.description}
           </p>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {submission?.hint ? (
-              <span className="text-xs uppercase tracking-[0.18em] text-evm-matrix">
-                {submission.hint}
-              </span>
-            ) : (
-              <span className="text-xs uppercase tracking-[0.18em] text-evm-muted">
-                Тип задачи: {task.type.toUpperCase()}
-              </span>
-            )}
-            <Button onClick={onSubmit} variant={isCompleted ? "secondary" : "default"} disabled={isCompleted}>
-              {isCompleted ? "Ключ сохранён" : "Сдать решение"}
-            </Button>
-          </div>
+
+          {showForm ? (
+            <TaskSubmissionForm
+              task={task}
+              onSubmit={handleSubmit}
+              onCancel={() => setShowForm(false)}
+              isSubmitting={isSubmitting}
+              onUploadFiles={onUploadFiles}
+            />
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                {isCompleted && (
+                  <span className="text-xs uppercase tracking-[0.18em] text-evm-matrix">
+                    ✓ Задание принято
+                  </span>
+                )}
+                {isPending && (
+                  <span className="text-xs uppercase tracking-[0.18em] text-evm-accent">
+                    ⏳ На модерации
+                  </span>
+                )}
+                {isRejected && (
+                  <span className="text-xs uppercase tracking-[0.18em] text-red-500">
+                    ✗ Отклонено
+                  </span>
+                )}
+                {submission?.hint && (
+                  <span className="text-xs uppercase tracking-[0.18em] text-evm-matrix">
+                    {submission.hint}
+                  </span>
+                )}
+                {submission?.message && (
+                  <span className="text-xs text-evm-muted">
+                    {submission.message}
+                  </span>
+                )}
+                {!submission && (
+                  <span className="text-xs uppercase tracking-[0.18em] text-evm-muted">
+                    Тип задачи: {task.type.toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <Button
+                onClick={() => setShowForm(true)}
+                variant={isCompleted ? "secondary" : "default"}
+                disabled={isCompleted || isPending}
+              >
+                {isCompleted
+                  ? "Ключ сохранён"
+                  : isPending
+                    ? "На модерации"
+                    : isRejected
+                      ? "Отправить снова"
+                      : "Сдать на модерацию"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

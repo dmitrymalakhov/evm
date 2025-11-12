@@ -8,6 +8,7 @@ import {
   teamProgress,
   teams,
 } from "../db/schema.js";
+import { logUserAction } from "./analytics.js";
 
 type TransactionClient = Parameters<
   Parameters<typeof db.transaction>[0]
@@ -36,6 +37,19 @@ export function addTeamChatMessage(teamId: string, message: { userId: string; us
     createdAt: new Date().toISOString(),
   };
   db.insert(chatMessages).values(entry).run();
+  
+  // Log user action
+  logUserAction({
+    userId: message.userId,
+    actionType: "chat_message",
+    entityType: "team",
+    entityId: teamId,
+    metadata: {
+      messageId: entry.id,
+      messageLength: message.body.length,
+    },
+  });
+  
   return entry;
 }
 
@@ -115,7 +129,7 @@ export function updateIdea(teamId: string, ideaId: string, updates: Partial<type
 export class IdeaVoteError extends Error { }
 
 export function voteForIdea(teamId: string, ideaId: string, userId: string) {
-  return db.transaction((tx: TransactionClient) => {
+  const result = db.transaction((tx: TransactionClient) => {
     const idea = tx
       .select()
       .from(ideas)
@@ -162,6 +176,22 @@ export function voteForIdea(teamId: string, ideaId: string, userId: string) {
       .where(eq(ideas.id, ideaId))
       .get();
   });
+  
+  // Log user action (outside transaction to avoid issues)
+  if (result) {
+    logUserAction({
+      userId,
+      actionType: "idea_voted",
+      entityType: "idea",
+      entityId: ideaId,
+      metadata: {
+        teamId,
+        newVoteCount: result.votes,
+      },
+    });
+  }
+  
+  return result;
 }
 
 export function removeIdeaVote(teamId: string, ideaId: string, userId: string) {

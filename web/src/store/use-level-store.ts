@@ -38,10 +38,28 @@ export const useLevelStore = create<LevelState>((set) => ({
         const progress = await api.getTeamProgress(teamId);
         unlockedKeys = progress.unlockedKeys ?? [];
       }
+
+      // Load submissions for tasks
+      const taskIds = tasks.map((t) => t.id);
+      let submissions: Record<string, SubmissionResponse> = {};
+      try {
+        const submissionList = await api.getTaskSubmissions(taskIds);
+        submissionList.forEach((sub) => {
+          submissions[sub.taskId] = {
+            status: sub.status as "accepted" | "rejected" | "pending",
+            hint: sub.hint ?? undefined,
+            message: sub.message ?? undefined,
+          };
+        });
+      } catch {
+        // Ignore submission loading errors
+      }
+
       set({
         currentLevel: level,
         tasks,
         unlockedKeys,
+        submissions,
         isLoading: false,
       });
     } catch (error) {

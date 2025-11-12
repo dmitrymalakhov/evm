@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+    index,
     integer,
     primaryKey,
     sqliteTable,
@@ -295,6 +296,29 @@ export const taskSubmissions = sqliteTable("task_submissions", {
     createdAt: text("created_at").notNull(),
 });
 
+export const userActions = sqliteTable(
+    "user_actions",
+    {
+        id: text("id").primaryKey(),
+        userId: text("user_id")
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        actionType: text("action_type").notNull(),
+        entityType: text("entity_type"),
+        entityId: text("entity_id"),
+        metadata: text("metadata", { mode: "json" })
+            .$type<Record<string, unknown>>(),
+        createdAt: integer("created_at", { mode: "timestamp" })
+            .$defaultFn(() => new Date())
+            .notNull(),
+    },
+    (table) => ({
+        userIdIdx: index("user_actions_user_id_idx").on(table.userId),
+        createdAtIdx: index("user_actions_created_at_idx").on(table.createdAt),
+        actionTypeIdx: index("user_actions_action_type_idx").on(table.actionType),
+    }),
+);
+
 export const usersRelations = relations(users, ({ one, many }) => ({
     team: one(teams, {
         fields: [users.teamId],
@@ -303,6 +327,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     sessions: many(sessions),
     tickets: many(tickets),
     weeklyProgress: many(userWeekProgress),
+    actions: many(userActions),
 }));
 
 export const teamsRelations = relations(teams, ({ many, one }) => ({

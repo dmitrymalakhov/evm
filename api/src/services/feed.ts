@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { db } from "../db/client";
 import {
@@ -6,6 +6,7 @@ import {
   taskSubmissions,
   thoughts,
 } from "../db/schema";
+import { logUserAction } from "./analytics";
 
 export function getThoughtFeed() {
   return {
@@ -38,6 +39,19 @@ export function createComment(payload: {
     ...payload,
   };
   db.insert(comments).values(entry).run();
+  
+  // Log user action
+  logUserAction({
+    userId: payload.userId,
+    actionType: "comment_created",
+    entityType: payload.entityType,
+    entityId: payload.entityId,
+    metadata: {
+      parentId: payload.parentId,
+      commentLength: payload.body.length,
+    },
+  });
+  
   return entry;
 }
 
@@ -51,16 +65,52 @@ export function saveTaskSubmission(payload: {
     taskId: payload.taskId,
     userId: payload.userId,
     payload: payload.body,
-    status: "accepted",
-    hint: "Фрагмент ключа сохранён.",
+    status: "pending",
+    hint: null,
     message: null,
     createdAt: new Date().toISOString(),
   };
   db.insert(taskSubmissions).values(submission).run();
+  
+  // Log user action
+  logUserAction({
+    userId: payload.userId,
+    actionType: "task_submission",
+    entityType: "task",
+    entityId: payload.taskId,
+    metadata: {
+      submissionId: submission.id,
+      status: submission.status,
+    },
+  });
+  
   return {
     status: submission.status,
-    hint: submission.hint,
+    hint: submission.hint ?? undefined,
     message: submission.message ?? undefined,
   };
+}
+
+export function getUserTaskSubmissions(userId: string, taskIds?: string[]) {
+  if (taskIds && taskIds.length > 0) {
+    return db
+      .select()
+      .from(taskSubmissions)
+      .where(
+        and(
+          eq(taskSubmissions.userId, userId),
+          inArray(taskSubmissions.taskId, taskIds),
+        ),
+      )
+      .orderBy(desc(taskSubmissions.createdAt))
+      .all();
+  }
+
+  return db
+    .select()
+    .from(taskSubmissions)
+    .where(eq(taskSubmissions.userId, userId))
+    .orderBy(desc(taskSubmissions.createdAt))
+    .all();
 }
 

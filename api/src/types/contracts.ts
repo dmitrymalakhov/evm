@@ -42,7 +42,7 @@ export type Task = {
 };
 
 export type SubmissionResponse = {
-  status: "accepted" | "rejected";
+  status: "accepted" | "rejected" | "pending";
   hint?: string;
   message?: string;
 };
@@ -164,5 +164,52 @@ export type UserIterationProgress = {
 export type ThoughtFeed = {
   comments: Comment[];
   thoughts: Thought[];
+};
+
+export type TaskCompletionStat = {
+  taskId: string;
+  taskTitle: string;
+  taskType: string;
+  levelId: string;
+  levelWeek: number;
+  completedCount: number;
+  totalSubmissions: number;
+};
+
+export type UserProgressStat = {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  tasksCompleted: number;
+  weeksCompleted: number;
+  totalActions: number;
+  lastActivityAt: Date;
+};
+
+export type WeeklyActivityStat = {
+  date: string;
+  actionType: string;
+  count: number;
+};
+
+export type TopUserStat = {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  totalActions: number;
+  tasksCompleted: number;
+};
+
+export type TaskCompletionByWeek = {
+  week: number;
+  levelTitle: string;
+  tasksCompleted: number;
+  usersCompleted: number;
+};
+
+export type UserActivityTimeline = {
+  date: string;
+  actionType: string;
+  count: number;
 };
 

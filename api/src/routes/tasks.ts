@@ -3,11 +3,41 @@ import { z } from "zod";
 
 import { getRequestUser } from "../utils/get-request-user";
 import { getTask } from "../services/levels";
-import { saveTaskSubmission } from "../services/feed";
+import { saveTaskSubmission, getUserTaskSubmissions } from "../services/feed";
 
 const router = Router();
 
 const submissionSchema = z.record(z.string(), z.unknown()).default({});
+
+router.get("/submissions", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    const taskIds = typeof request.query.taskIds === "string"
+      ? request.query.taskIds.split(",")
+      : undefined;
+
+    const submissions = getUserTaskSubmissions(user!.id, taskIds);
+    return response.json(
+      submissions.map((sub) => ({
+        taskId: sub.taskId,
+        status: sub.status,
+        hint: sub.hint,
+        message: sub.message,
+        createdAt: sub.createdAt,
+      })),
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось загрузить отправки",
+    });
+  }
+});
 
 router.post("/:taskId/submit", (request, response) => {
   const task = getTask(request.params.taskId);

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, gt, lte } from "drizzle-orm";
 
 import { db } from "../db/client";
 import { iterations, levels, tasks } from "../db/schema";
@@ -9,20 +9,43 @@ function nowDate() {
 
 export function getActiveIteration() {
   const now = nowDate();
-  const active =
-    db
+  // Get all iterations ordered by start date (most recent first)
+  const allIterations = db
+    .select()
+    .from(iterations)
+    .orderBy(desc(iterations.startsAt))
+    .all();
+
+  if (allIterations.length === 0) {
+    return null;
+  }
+
+  // When admin sets an active week, we want to prioritize that iteration
+  // The key insight: we should check if there's a level matching the iteration's currentWeek
+  // This indicates the iteration has been properly set up and activated
+  
+  // First, try to find an iteration that has a level matching its currentWeek
+  // This ensures that when admin sets an active week, that iteration is used
+  for (const iter of allIterations) {
+    const matchingLevel = db
       .select()
-      .from(iterations)
-      .where(and(lte(iterations.startsAt, now), gte(iterations.endsAt, now)))
-      .limit(1)
-      .get() ??
-    db
-      .select()
-      .from(iterations)
-      .orderBy(desc(iterations.startsAt))
-      .limit(1)
+      .from(levels)
+      .where(
+        and(
+          eq(levels.iterationId, iter.id),
+          eq(levels.week, iter.currentWeek),
+        ),
+      )
       .get();
-  return active ?? null;
+    
+    if (matchingLevel) {
+      return iter;
+    }
+  }
+
+  // Fallback: if no iteration has a matching level, return the most recent one
+  // This handles the case where levels haven't been created yet
+  return allIterations[0] ?? null;
 }
 
 export function getIterationById(iterationId: string) {

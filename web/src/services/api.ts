@@ -6,13 +6,19 @@ import {
   type Level,
   type SubmissionResponse,
   type Task,
+  type TaskCompletionByWeek,
+  type TaskCompletionStat,
   type Team,
   type TeamProgressSummary,
   type Thought,
   type ThoughtFeed,
   type Ticket,
+  type TopUserStat,
   type User,
+  type UserActivityTimeline,
+  type UserProgressStat,
   type ValidatorResponse,
+  type WeeklyActivityStat,
 } from "@/types/contracts";
 
 const isBrowser = typeof window !== "undefined";
@@ -233,11 +239,57 @@ export const api = {
   getTasksForLevel: (levelId: string) =>
     request<Task[]>(`/levels/${levelId}/tasks`),
 
+  getTaskSubmissions: (taskIds?: string[]) =>
+    request<
+      Array<{
+        taskId: string;
+        status: string;
+        hint: string | null;
+        message: string | null;
+        createdAt: string;
+      }>
+    >(
+      `/tasks/submissions${taskIds && taskIds.length > 0 ? `?taskIds=${taskIds.join(",")}` : ""}`,
+    ),
+
   submitTask: (taskId: string, body: Record<string, unknown>) =>
     request<SubmissionResponse>(`/tasks/${taskId}/submit`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  uploadFiles: async (files: File[]): Promise<Array<{ filename: string; url: string; originalName: string; size: number; mimetype: string }>> => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("photos", file);
+    });
+
+    const token = getAccessToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    // Don't set Content-Type - browser will set it automatically with boundary for FormData
+
+    const response = await fetch(resolveUrl("/uploads"), {
+      method: "POST",
+      headers,
+      body: formData,
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const message = await parseErrorMessage(response);
+      throw new ApiError(message || response.statusText, response.status);
+    }
+
+    const data = await response.json();
+    // Convert relative URLs to absolute URLs
+    return data.files.map((file: { filename: string; url: string; originalName: string; size: number; mimetype: string }) => ({
+      ...file,
+      url: resolveUrl(file.url),
+    }));
+  },
 
   getFeed: () => request<ThoughtFeed>("/feed"),
 
@@ -429,6 +481,37 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ code }),
     }),
+
+  // Analytics endpoints
+  getTaskCompletionStats: (taskId?: string) =>
+    request<TaskCompletionStat[]>(
+      `/analytics/task-completion${taskId ? `?taskId=${taskId}` : ""}`,
+    ),
+
+  getUserProgressStats: (userId?: string) =>
+    request<UserProgressStat[]>(
+      `/analytics/user-progress${userId ? `?userId=${userId}` : ""}`,
+    ),
+
+  getWeeklyActivityStats: (startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append("startDate", startDate);
+    if (endDate) params.append("endDate", endDate);
+    return request<WeeklyActivityStat[]>(
+      `/analytics/weekly-activity${params.toString() ? `?${params.toString()}` : ""}`,
+    );
+  },
+
+  getTopUsersByActivity: (limit = 10) =>
+    request<TopUserStat[]>(`/analytics/top-users?limit=${limit}`),
+
+  getTaskCompletionByWeek: () =>
+    request<TaskCompletionByWeek[]>("/analytics/task-completion-by-week"),
+
+  getUserActivityTimeline: (userId: string, days = 30) =>
+    request<UserActivityTimeline[]>(
+      `/analytics/user-timeline/${userId}?days=${days}`,
+    ),
 };
 
 export const authSession = {
