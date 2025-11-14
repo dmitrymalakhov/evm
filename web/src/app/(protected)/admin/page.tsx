@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
@@ -21,7 +21,17 @@ function resolvePhotoUrl(photo: string): string {
     return photo;
   }
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:4000";
-  return photo.startsWith("/") ? `${apiBaseUrl}${photo}` : `${apiBaseUrl}/${photo}`;
+  // Encode the path part of the URL to handle spaces and special characters
+  const path = photo.startsWith("/") ? photo : `/${photo}`;
+  // Split path into segments and encode each segment separately
+  // This ensures that spaces and special characters in filenames are properly encoded
+  const pathSegments = path.split("/").map(segment => {
+    if (!segment) return segment;
+    // Encode each segment but preserve slashes
+    return encodeURIComponent(segment);
+  });
+  const encodedPath = pathSegments.join("/");
+  return `${apiBaseUrl}${encodedPath}`;
 }
 
 type TaskSubmission = {
@@ -55,6 +65,10 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeIteration, setActiveIteration] = useState<Iteration | null>(null);
   const [collapsedWeeks, setCollapsedWeeks] = useState<Set<string>>(new Set());
+  const [submissionStatusFilter, setSubmissionStatusFilter] = useState<"all" | "pending" | "accepted" | "rejected" | "revision">("all");
+  const [collapsedSubmissionGroups, setCollapsedSubmissionGroups] = useState<Set<string>>(new Set());
+  const [submissionPage, setSubmissionPage] = useState(1);
+  const SUBMISSIONS_PER_PAGE = 10;
 
   // Level form state
   const [showLevelForm, setShowLevelForm] = useState(false);
@@ -86,12 +100,23 @@ export default function AdminPage() {
   const [selectedSubmission, setSelectedSubmission] =
     useState<TaskSubmission | null>(null);
   const [submissionForm, setSubmissionForm] = useState({
-    status: "accepted" as "accepted" | "rejected" | "pending",
+    status: "accepted" as "accepted" | "rejected" | "pending" | "revision",
     hint: "",
     message: "",
   });
 
+  const loadSubmissions = useCallback(async () => {
+    try {
+      const submissionsResponse = await api.getAdminSubmissions();
+      setSubmissions(submissionsResponse);
+    } catch {
+      setSubmissions([]);
+    }
+  }, []);
+
   useEffect(() => {
+    let isMounted = true;
+
     async function load() {
       try {
         const [levelsResponse, metricsResponse, iterationsResponse] =
@@ -100,6 +125,9 @@ export default function AdminPage() {
             api.getAdminMetrics(),
             api.getAdminIterations(),
           ]);
+
+        if (!isMounted) return;
+
         setLevels(levelsResponse);
         setMetrics(metricsResponse);
         setIterations(iterationsResponse);
@@ -125,23 +153,59 @@ export default function AdminPage() {
         setTasks(tasksMap);
 
         // Load submissions
-        try {
-          const submissionsResponse = await api.getAdminSubmissions();
-          setSubmissions(submissionsResponse);
-        } catch {
-          setSubmissions([]);
-        }
+        await loadSubmissions();
       } catch (error) {
+        if (!isMounted) return;
         toast.error("Не удалось загрузить панель администратора", {
           description:
             error instanceof Error ? error.message : "Сбой матрицы E.V.M.",
         });
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
     void load();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [loadSubmissions]);
+
+  // Reload submissions when page becomes visible (user returns to tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadSubmissions();
+      }
+    };
+
+    const handleFocus = () => {
+      void loadSubmissions();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [loadSubmissions]);
+
+  // Reset page if current page is out of bounds after filtering
+  useEffect(() => {
+    const filteredSubmissions = submissionStatusFilter === "all"
+      ? submissions
+      : submissions.filter(s => s.status === submissionStatusFilter);
+    const totalPages = Math.ceil(filteredSubmissions.length / SUBMISSIONS_PER_PAGE);
+    if (submissionPage > totalPages && totalPages > 0) {
+      setSubmissionPage(1);
+    } else if (totalPages === 0 && submissionPage > 1) {
+      setSubmissionPage(1);
+    }
+  }, [submissions, submissionStatusFilter]); // Removed submissionPage from deps to avoid infinite loop
 
   const loadLevelTasks = async (levelId: string) => {
     try {
@@ -155,17 +219,6 @@ export default function AdminPage() {
     }
   };
 
-  const loadSubmissions = async () => {
-    try {
-      const submissionsResponse = await api.getAdminSubmissions();
-      setSubmissions(submissionsResponse);
-    } catch (error) {
-      toast.error("Не удалось загрузить отправки", {
-        description:
-          error instanceof Error ? error.message : "Ошибка загрузки",
-      });
-    }
-  };
 
   const handleCreateLevel = () => {
     setEditingLevel(null);
@@ -320,7 +373,7 @@ export default function AdminPage() {
   const handleModerateSubmission = (submission: TaskSubmission) => {
     setSelectedSubmission(submission);
     setSubmissionForm({
-      status: (submission.status as "accepted" | "rejected" | "pending") || "pending",
+      status: (submission.status as "accepted" | "rejected" | "pending" | "revision") || "pending",
       hint: submission.hint || "",
       message: submission.message || "",
     });
@@ -546,103 +599,388 @@ export default function AdminPage() {
             <p className="text-xs uppercase tracking-[0.22em] text-evm-muted">
               Просмотр и модерация ответов пользователей
             </p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {submissions.map((submission) => (
-              <div
-                key={submission.id}
-                className="rounded-md border border-evm-steel/40 bg-black/40 p-4"
+            {/* Status Filter Tabs */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={submissionStatusFilter === "all" ? "default" : "outline"}
+                onClick={() => {
+                  setSubmissionStatusFilter("all");
+                  setSubmissionPage(1);
+                }}
               >
-                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em]">
-                      {submission.taskTitle || "Задача"} ({submission.taskType})
-                    </p>
-                    <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
-                      Пользователь: {submission.userName || submission.userEmail} • Статус: {submission.status} •{" "}
-                      {new Date(submission.createdAt).toLocaleString("ru-RU")}
-                    </p>
-                    <div className="mt-2 rounded border border-evm-steel/20 bg-black/20 p-2">
-                      <p className="text-xs text-evm-muted">Ответ:</p>
-                      <div className="mt-1 space-y-2">
-                        {/* Display photos if present */}
-                        {submission.payload.photos &&
-                          Array.isArray(submission.payload.photos) &&
-                          submission.payload.photos.length > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-xs font-semibold text-evm-muted">
-                                Фото ({submission.payload.photos.length}):
-                              </p>
-                              <div className="grid grid-cols-2 gap-1">
-                                {(submission.payload.photos as string[])
-                                  .slice(0, 2)
-                                  .map((photo: string, index: number) => (
-                                    <img
-                                      key={index}
-                                      src={resolvePhotoUrl(photo)}
-                                      alt={`Photo ${index + 1}`}
-                                      className="h-16 w-full rounded object-cover"
-                                      onError={(e) => {
-                                        console.error("Failed to load image:", resolvePhotoUrl(photo));
-                                        (e.target as HTMLImageElement).style.display = "none";
-                                      }}
-                                    />
-                                  ))}
-                              </div>
-                            </div>
-                          )}
+                Все ({submissions.length})
+              </Button>
+              <Button
+                size="sm"
+                variant={submissionStatusFilter === "pending" ? "default" : "outline"}
+                onClick={() => {
+                  setSubmissionStatusFilter("pending");
+                  setSubmissionPage(1);
+                }}
+                className={submissionStatusFilter === "pending" ? "bg-yellow-600 hover:bg-yellow-700" : ""}
+              >
+                На рассмотрении ({submissions.filter(s => s.status === "pending").length})
+              </Button>
+              <Button
+                size="sm"
+                variant={submissionStatusFilter === "accepted" ? "default" : "outline"}
+                onClick={() => {
+                  setSubmissionStatusFilter("accepted");
+                  setSubmissionPage(1);
+                }}
+                className={submissionStatusFilter === "accepted" ? "bg-green-600 hover:bg-green-700" : ""}
+              >
+                Принято ({submissions.filter(s => s.status === "accepted").length})
+              </Button>
+              <Button
+                size="sm"
+                variant={submissionStatusFilter === "rejected" ? "default" : "outline"}
+                onClick={() => {
+                  setSubmissionStatusFilter("rejected");
+                  setSubmissionPage(1);
+                }}
+                className={submissionStatusFilter === "rejected" ? "bg-red-600 hover:bg-red-700" : ""}
+              >
+                Отклонено ({submissions.filter(s => s.status === "rejected").length})
+              </Button>
+              <Button
+                size="sm"
+                variant={submissionStatusFilter === "revision" ? "default" : "outline"}
+                onClick={() => {
+                  setSubmissionStatusFilter("revision");
+                  setSubmissionPage(1);
+                }}
+                className={submissionStatusFilter === "revision" ? "bg-orange-600 hover:bg-orange-700" : ""}
+              >
+                На доработке ({submissions.filter(s => s.status === "revision").length})
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {(() => {
+              // Filter submissions by status
+              const filteredSubmissions = submissionStatusFilter === "all"
+                ? submissions
+                : submissions.filter(s => s.status === submissionStatusFilter);
 
-                        {/* Display survey if present */}
-                        {submission.payload.survey &&
-                          typeof submission.payload.survey === "object" &&
-                          submission.payload.survey !== null &&
-                          Object.keys(submission.payload.survey).length > 0 && (
-                            <p className="text-xs text-evm-muted">
-                              Опрос: {Object.keys(submission.payload.survey).length}{" "}
-                              ответов
+              // Sort submissions: by status (pending first, then revision), then by date (newest first)
+              const statusOrder = ["pending", "revision", "accepted", "rejected"];
+              const sortedSubmissions = [...filteredSubmissions].sort((a, b) => {
+                const aStatus = a.status || "pending";
+                const bStatus = b.status || "pending";
+                const aIndex = statusOrder.indexOf(aStatus);
+                const bIndex = statusOrder.indexOf(bStatus);
+
+                if (aIndex !== bIndex) {
+                  if (aIndex === -1) return 1;
+                  if (bIndex === -1) return -1;
+                  return aIndex - bIndex;
+                }
+
+                // Same status, sort by date (newest first)
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+              });
+
+              // Apply pagination
+              const totalSubmissions = sortedSubmissions.length;
+              const totalPages = Math.ceil(totalSubmissions / SUBMISSIONS_PER_PAGE);
+              const startIndex = (submissionPage - 1) * SUBMISSIONS_PER_PAGE;
+              const endIndex = startIndex + SUBMISSIONS_PER_PAGE;
+              const paginatedSubmissions = sortedSubmissions.slice(startIndex, endIndex);
+
+              // Group paginated submissions by status, then by task
+              const groupedByStatus: Record<string, Record<string, TaskSubmission[]>> = {};
+
+              paginatedSubmissions.forEach((submission) => {
+                const status = submission.status || "pending";
+                const taskKey = `${submission.taskId || "unknown"}_${submission.taskTitle || "Задача"}`;
+
+                if (!groupedByStatus[status]) {
+                  groupedByStatus[status] = {};
+                }
+                if (!groupedByStatus[status][taskKey]) {
+                  groupedByStatus[status][taskKey] = [];
+                }
+                groupedByStatus[status][taskKey].push(submission);
+              });
+
+              // Sort statuses: pending first, then revision, then accepted, then rejected
+              const sortedStatuses = Object.keys(groupedByStatus).sort((a, b) => {
+                const aIndex = statusOrder.indexOf(a);
+                const bIndex = statusOrder.indexOf(b);
+                if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+                if (aIndex === -1) return 1;
+                if (bIndex === -1) return -1;
+                return aIndex - bIndex;
+              });
+
+              if (sortedStatuses.length === 0) {
+                return (
+                  <>
+                    <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
+                      Отправки не найдены.
+                    </p>
+                  </>
+                );
+              }
+
+              return (
+                <>
+                  {sortedStatuses.map((status) => {
+                    const statusLabel = {
+                      pending: "На рассмотрении",
+                      revision: "На доработке",
+                      accepted: "Принято",
+                      rejected: "Отклонено",
+                    }[status] || status;
+
+                    const statusColor = {
+                      pending: "border-yellow-500/50 bg-yellow-500/10",
+                      revision: "border-orange-500/50 bg-orange-500/10",
+                      accepted: "border-green-500/50 bg-green-500/10",
+                      rejected: "border-red-500/50 bg-red-500/10",
+                    }[status] || "border-evm-steel/40 bg-black/40";
+
+                    const statusGroupKey = `status_${status}`;
+                    const isStatusCollapsed = collapsedSubmissionGroups.has(statusGroupKey);
+                    const tasksInStatus = groupedByStatus[status];
+                    const taskKeys = Object.keys(tasksInStatus).sort();
+
+                    return (
+                      <div
+                        key={status}
+                        className={`rounded-md border ${statusColor} p-4`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                setCollapsedSubmissionGroups((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(statusGroupKey)) {
+                                    next.delete(statusGroupKey);
+                                  } else {
+                                    next.add(statusGroupKey);
+                                  }
+                                  return next;
+                                });
+                              }}
+                            >
+                              {isStatusCollapsed ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronUp className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <p className="text-sm font-semibold uppercase tracking-[0.2em]">
+                              {statusLabel} ({filteredSubmissions.filter(s => s.status === status).length})
                             </p>
-                          )}
+                          </div>
+                        </div>
 
-                        {/* Display text if present */}
-                        {submission.payload.text && typeof submission.payload.text === "string" && (
-                          <p className="text-xs text-foreground line-clamp-2">
-                            {submission.payload.text}
-                          </p>
+                        {!isStatusCollapsed && (
+                          <div className="space-y-3">
+                            {taskKeys.map((taskKey) => {
+                              const taskSubmissions = tasksInStatus[taskKey];
+                              const firstSubmission = taskSubmissions[0];
+                              const taskTitle = firstSubmission.taskTitle || "Задача";
+                              const taskType = firstSubmission.taskType || "unknown";
+                              const taskGroupKey = `${statusGroupKey}_${taskKey}`;
+                              const isTaskCollapsed = collapsedSubmissionGroups.has(taskGroupKey);
+
+                              return (
+                                <div
+                                  key={taskKey}
+                                  className="rounded-md border border-evm-steel/30 bg-black/30 p-3"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-5 w-5 p-0"
+                                        onClick={() => {
+                                          setCollapsedSubmissionGroups((prev) => {
+                                            const next = new Set(prev);
+                                            if (next.has(taskGroupKey)) {
+                                              next.delete(taskGroupKey);
+                                            } else {
+                                              next.add(taskGroupKey);
+                                            }
+                                            return next;
+                                          });
+                                        }}
+                                      >
+                                        {isTaskCollapsed ? (
+                                          <ChevronDown className="h-3 w-3" />
+                                        ) : (
+                                          <ChevronUp className="h-3 w-3" />
+                                        )}
+                                      </Button>
+                                      <p className="text-xs font-semibold uppercase tracking-[0.18em]">
+                                        {taskTitle} ({taskType}) — {taskSubmissions.length} отправок
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {!isTaskCollapsed && (
+                                    <div className="space-y-2 mt-2">
+                                      {taskSubmissions.map((submission) => (
+                                        <div
+                                          key={submission.id}
+                                          className="rounded-md border border-evm-steel/20 bg-black/20 p-3"
+                                        >
+                                          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                                            <div>
+                                              <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
+                                                Пользователь: {submission.userName || submission.userEmail} •{" "}
+                                                {new Date(submission.createdAt).toLocaleString("ru-RU")}
+                                              </p>
+                                              <div className="mt-2 rounded border border-evm-steel/20 bg-black/20 p-2">
+                                                <p className="text-xs text-evm-muted">Ответ:</p>
+                                                <div className="mt-1 space-y-2">
+                                                  {/* Display photos if present */}
+                                                  {submission.payload.photos &&
+                                                    Array.isArray(submission.payload.photos) &&
+                                                    submission.payload.photos.length > 0 && (
+                                                      <div className="space-y-1">
+                                                        <p className="text-xs font-semibold text-evm-muted">
+                                                          Фото ({submission.payload.photos.length}):
+                                                        </p>
+                                                        <div className="grid grid-cols-2 gap-1">
+                                                          {(submission.payload.photos as string[])
+                                                            .slice(0, 2)
+                                                            .map((photo: string, index: number) => (
+                                                              <img
+                                                                key={index}
+                                                                src={resolvePhotoUrl(photo)}
+                                                                alt={`Photo ${index + 1}`}
+                                                                className="h-16 w-full rounded object-cover"
+                                                                onError={(e) => {
+                                                                  console.error("Failed to load image:", resolvePhotoUrl(photo));
+                                                                  (e.target as HTMLImageElement).style.display = "none";
+                                                                }}
+                                                              />
+                                                            ))}
+                                                        </div>
+                                                      </div>
+                                                    )}
+
+                                                  {/* Display survey if present */}
+                                                  {submission.payload.survey &&
+                                                    typeof submission.payload.survey === "object" &&
+                                                    submission.payload.survey !== null &&
+                                                    Object.keys(submission.payload.survey).length > 0 && (
+                                                      <p className="text-xs text-evm-muted">
+                                                        Опрос: {Object.keys(submission.payload.survey).length}{" "}
+                                                        ответов
+                                                      </p>
+                                                    )}
+
+                                                  {/* Display text if present */}
+                                                  {submission.payload.text && typeof submission.payload.text === "string" && (
+                                                    <p className="text-xs text-foreground line-clamp-2">
+                                                      {submission.payload.text}
+                                                    </p>
+                                                  )}
+
+                                                  {/* Fallback */}
+                                                  {!submission.payload.photos &&
+                                                    !submission.payload.survey &&
+                                                    !submission.payload.text && (
+                                                      <pre className="text-xs">
+                                                        {JSON.stringify(submission.payload, null, 2) as string}
+                                                      </pre>
+                                                    )}
+                                                </div>
+                                              </div>
+                                              {submission.message && (
+                                                <p className="mt-2 text-xs text-evm-muted">
+                                                  Сообщение: {submission.message}
+                                                </p>
+                                              )}
+                                            </div>
+                                            <div className="flex items-center justify-end">
+                                              <Button
+                                                size="sm"
+                                                variant="secondary"
+                                                onClick={() => handleModerateSubmission(submission)}
+                                              >
+                                                Модерировать
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
+                      </div>
+                    );
+                  })}
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-evm-steel/20 pt-4 mt-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
+                        Показано {startIndex + 1}–{Math.min(endIndex, totalSubmissions)} из {totalSubmissions}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSubmissionPage(prev => Math.max(1, prev - 1))}
+                          disabled={submissionPage === 1}
+                        >
+                          Назад
+                        </Button>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum: number;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (submissionPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (submissionPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = submissionPage - 2 + i;
+                            }
 
-                        {/* Fallback */}
-                        {!submission.payload.photos &&
-                          !submission.payload.survey &&
-                          !submission.payload.text && (
-                            <pre className="text-xs">
-                              {JSON.stringify(submission.payload, null, 2) as string}
-                            </pre>
-                          )}
+                            return (
+                              <Button
+                                key={pageNum}
+                                size="sm"
+                                variant={submissionPage === pageNum ? "default" : "outline"}
+                                onClick={() => setSubmissionPage(pageNum)}
+                                className="min-w-[2rem]"
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSubmissionPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={submissionPage === totalPages}
+                        >
+                          Вперед
+                        </Button>
                       </div>
                     </div>
-                    {submission.message && (
-                      <p className="mt-2 text-xs text-evm-muted">
-                        Сообщение: {submission.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-end">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleModerateSubmission(submission)}
-                    >
-                      Модерировать
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {submissions.length === 0 ? (
-              <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
-                Отправки не найдены.
-              </p>
-            ) : null}
+                  )}
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -1003,11 +1341,12 @@ export default function AdminPage() {
                   onChange={(e) =>
                     setSubmissionForm({
                       ...submissionForm,
-                      status: e.target.value as "accepted" | "rejected" | "pending",
+                      status: e.target.value as "accepted" | "rejected" | "pending" | "revision",
                     })
                   }
                 >
                   <option value="pending">На рассмотрении</option>
+                  <option value="revision">На доработке</option>
                   <option value="accepted">Принято</option>
                   <option value="rejected">Отклонено</option>
                 </select>

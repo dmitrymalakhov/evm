@@ -101,21 +101,38 @@ export function TaskSubmissionForm({
   const handleSubmit = async () => {
     // Upload photos to server if we have files and upload function
     let photoUrls: string[] = [];
-    if (photos.length > 0 && onUploadFiles) {
+    if (photos.length > 0) {
+      if (!onUploadFiles) {
+        console.error("onUploadFiles is not available", { photos: photos.length, onUploadFiles });
+        throw new Error("Функция загрузки файлов не доступна. Пожалуйста, обновите страницу.");
+      }
       try {
+        console.log("Uploading files:", photos.length, "files");
         const uploadedFiles = await onUploadFiles(photos);
+        console.log("Uploaded files:", uploadedFiles);
         photoUrls = uploadedFiles.map((file) => file.url);
+        if (photoUrls.length === 0) {
+          throw new Error("Не удалось загрузить файлы. Попробуйте еще раз.");
+        }
+        console.log("Photo URLs:", photoUrls);
       } catch (error) {
         console.error("Failed to upload files:", error);
-        throw error;
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : "Не удалось загрузить файлы. Пожалуйста, попробуйте еще раз.";
+        throw new Error(errorMessage);
       }
     }
 
-    await onSubmit({
+    const payload = {
       photos: photoUrls.length > 0 ? photoUrls : undefined,
       survey: Object.keys(surveyAnswers).length > 0 ? surveyAnswers : undefined,
       text: textAnswer || undefined,
-    });
+    };
+    
+    console.log("Submitting payload:", { ...payload, photos: payload.photos?.length });
+
+    await onSubmit(payload);
   };
 
   const canSubmit = () => {

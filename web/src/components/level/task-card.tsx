@@ -31,6 +31,7 @@ export function TaskCard({ task, index, onSubmit, onUploadFiles }: TaskCardProps
   const isCompleted = submission?.status === "accepted";
   const isPending = submission?.status === "pending";
   const isRejected = submission?.status === "rejected";
+  const isRevision = submission?.status === "revision";
 
   const handleSubmit = async (payload: {
     photos?: string[];
@@ -41,6 +42,10 @@ export function TaskCard({ task, index, onSubmit, onUploadFiles }: TaskCardProps
     try {
       await onSubmit(payload);
       setShowForm(false);
+    } catch (error) {
+      // Error is already handled by the form or parent component
+      console.error("Failed to submit task:", error);
+      // Don't close form on error so user can retry
     } finally {
       setIsSubmitting(false);
     }
@@ -57,6 +62,7 @@ export function TaskCard({ task, index, onSubmit, onUploadFiles }: TaskCardProps
           "border-evm-steel/40 bg-black/40",
           isCompleted && "border-evm-matrix/50 shadow-[0_0_18px_rgba(8,200,112,0.3)]",
           isPending && "border-evm-accent/50 shadow-[0_0_18px_rgba(255,193,7,0.2)]",
+          isRevision && "border-orange-500/50 shadow-[0_0_18px_rgba(249,115,22,0.2)]",
           isRejected && "border-red-500/50 shadow-[0_0_18px_rgba(239,68,68,0.2)]",
         )}
       >
@@ -97,6 +103,11 @@ export function TaskCard({ task, index, onSubmit, onUploadFiles }: TaskCardProps
                     ⏳ На модерации
                   </span>
                 )}
+                {isRevision && (
+                  <span className="text-xs uppercase tracking-[0.18em] text-orange-500">
+                    🔄 На доработке
+                  </span>
+                )}
                 {isRejected && (
                   <span className="text-xs uppercase tracking-[0.18em] text-red-500">
                     ✗ Отклонено
@@ -121,15 +132,17 @@ export function TaskCard({ task, index, onSubmit, onUploadFiles }: TaskCardProps
               <Button
                 onClick={() => setShowForm(true)}
                 variant={isCompleted ? "secondary" : "default"}
-                disabled={isCompleted || isPending}
+                disabled={isCompleted || (isPending && !isRevision)}
               >
                 {isCompleted
                   ? "Ключ сохранён"
-                  : isPending
+                  : isPending && !isRevision
                     ? "На модерации"
-                    : isRejected
-                      ? "Отправить снова"
-                      : "Сдать на модерацию"}
+                    : isRevision
+                      ? "Доработать"
+                      : isRejected
+                        ? "Отправить снова"
+                        : "Сдать на модерацию"}
               </Button>
             </div>
           )}

@@ -453,7 +453,7 @@ export const api = {
   updateAdminSubmission: (
     submissionId: string,
     payload: {
-      status?: "accepted" | "rejected" | "pending";
+      status?: "accepted" | "rejected" | "pending" | "revision";
       hint?: string | null;
       message?: string | null;
     },

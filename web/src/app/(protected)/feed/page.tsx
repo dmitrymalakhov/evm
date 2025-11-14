@@ -15,7 +15,7 @@ export default function FeedPage() {
   }, [load]);
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto w-full max-w-4xl space-y-8">
       <div className="space-y-4">
         <h2 className="text-2xl font-semibold uppercase tracking-[0.28em]">
           Лента Матрицы

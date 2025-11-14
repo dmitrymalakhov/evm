@@ -17,23 +17,24 @@ export function TeletypeText({
   className,
 }: TeletypeTextProps) {
   const [displayed, setDisplayed] = useState("");
-  const characters = useMemo(() => text.split(""), [text]);
+  const characters = useMemo(() => Array.from(text ?? ""), [text]);
 
   useEffect(() => {
     let active = true;
     let index = 0;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     function typeNext() {
       if (!active) return;
-      setDisplayed((prev) => {
-        const next = prev + characters[index];
-        return next;
-      });
+      const nextChar = characters[index];
+      if (typeof nextChar === "string") {
+        setDisplayed((prev) => prev + nextChar);
+      }
       index += 1;
       if (index < characters.length) {
-        setTimeout(typeNext, speed);
+        timeoutId = setTimeout(typeNext, speed);
       } else if (loop) {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           if (!active) return;
           setDisplayed("");
           index = 0;
@@ -43,10 +44,15 @@ export function TeletypeText({
     }
 
     setDisplayed("");
-    typeNext();
+    if (characters.length > 0) {
+      typeNext();
+    }
 
     return () => {
       active = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [characters, speed, loop]);
 

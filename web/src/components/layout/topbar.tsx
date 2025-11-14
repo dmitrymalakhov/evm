@@ -6,6 +6,7 @@ import { Bell, Power } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import { useSessionStore } from "@/store/use-session-store";
 
 export function Topbar() {
@@ -30,6 +31,7 @@ export function Topbar() {
             <span className="sr-only">Уведомления</span>
           </Link>
         </Button>
+        <ThemeSwitcher />
         <div className="flex items-center gap-3">
           <div className="relative h-10 w-10 overflow-hidden rounded-full border border-evm-steel/40">
             <Image

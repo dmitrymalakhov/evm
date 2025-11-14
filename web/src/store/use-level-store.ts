@@ -15,6 +15,7 @@ type LevelState = {
     taskId: string,
     payload: Record<string, unknown>,
   ) => Promise<SubmissionResponse>;
+  reset: () => void;
 };
 
 export const useLevelStore = create<LevelState>((set) => ({
@@ -46,7 +47,7 @@ export const useLevelStore = create<LevelState>((set) => ({
         const submissionList = await api.getTaskSubmissions(taskIds);
         submissionList.forEach((sub) => {
           submissions[sub.taskId] = {
-            status: sub.status as "accepted" | "rejected" | "pending",
+            status: sub.status as "accepted" | "rejected" | "pending" | "revision",
             hint: sub.hint ?? undefined,
             message: sub.message ?? undefined,
           };
@@ -79,6 +80,16 @@ export const useLevelStore = create<LevelState>((set) => ({
         : [...state.unlockedKeys, taskId],
     }));
     return response;
+  },
+  reset: () => {
+    set({
+      currentLevel: null,
+      tasks: [],
+      submissions: {},
+      unlockedKeys: [],
+      error: null,
+      isLoading: false,
+    });
   },
 }));
 

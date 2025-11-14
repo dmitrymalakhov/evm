@@ -504,7 +504,7 @@ router.put("/moderation/submissions/:submissionId", (request, response) => {
 
     const payload = z
       .object({
-        status: z.enum(["accepted", "rejected", "pending"]).optional(),
+        status: z.enum(["accepted", "rejected", "pending", "revision"]).optional(),
         hint: z.string().nullable().optional(),
         message: z.string().nullable().optional(),
       })

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 import { useLevelStore } from "@/store/use-level-store";
 import { useSessionStore } from "@/store/use-session-store";
@@ -9,10 +9,18 @@ import { ConsoleFrame } from "@/components/ui/console-frame";
 
 export default function LevelsPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useSessionStore();
-  const { currentLevel, loadLevel, isLoading, error } = useLevelStore();
+  const { currentLevel, loadLevel, isLoading, error, reset } = useLevelStore();
   const hasRedirected = useRef(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Сбрасываем состояние при монтировании или при каждом переходе на эту страницу
+    reset();
+    hasRedirected.current = false;
+    setErrorMessage(null);
+  }, [pathname, reset]);
 
   useEffect(() => {
     async function loadAndRedirect() {
@@ -27,8 +35,11 @@ export default function LevelsPage() {
         );
       }
     }
-    void loadAndRedirect();
-  }, [user?.teamId, loadLevel]);
+    if (user?.teamId) {
+      void loadAndRedirect();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.teamId]);
 
   useEffect(() => {
     if (currentLevel?.week && !hasRedirected.current && !isLoading) {
@@ -50,7 +61,7 @@ export default function LevelsPage() {
       <div className="space-y-8">
         <ConsoleFrame className="border-evm-accent/30 bg-evm-accent/5 p-6">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-evm-accent mb-2">
-            Активная неделя не найдена
+            Активные задания недоступны
           </p>
         </ConsoleFrame>
       </div>
@@ -60,7 +71,7 @@ export default function LevelsPage() {
   return (
     <div className="space-y-8">
       <ConsoleFrame className="flex h-[420px] items-center justify-center text-xs uppercase tracking-[0.24em] text-evm-muted">
-        {isLoading ? "Загрузка активной недели..." : "Перенаправление на активную неделю..."}
+        {isLoading ? "Загружаем карточки заданий..." : "Перенаправляем к активным заданиям..."}
       </ConsoleFrame>
     </div>
   );

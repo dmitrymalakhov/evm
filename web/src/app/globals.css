@@ -12,6 +12,37 @@
   --matrix: #08c870;
   --scanline: rgba(255, 255, 255, 0.04);
   --grain: rgba(255, 255, 255, 0.02);
+  --body-radial-one: rgba(255, 134, 64, 0.08);
+  --body-radial-two: rgba(184, 71, 63, 0.12);
+  --body-linear-start: rgba(22, 26, 31, 0.6);
+  --body-linear-end: rgba(5, 6, 7, 0.9);
+  --body-surface: color-mix(in srgb, var(--graphite) 90%, #020203 10%);
+}
+
+:root[data-theme="holiday"] {
+  color-scheme: dark;
+  --background: #04171b;
+  --foreground: #f7fff1;
+  --accent: #ff4b64;
+  --accent-muted: #9f1d2f;
+  --accent-glow: #ffd369;
+  --steel: #1b3a40;
+  --graphite: #05252b;
+  --matrix: #24f2a2;
+  --scanline: rgba(255, 255, 255, 0.08);
+  --grain: rgba(255, 255, 255, 0.05);
+  --body-radial-one: rgba(255, 75, 100, 0.16);
+  --body-radial-two: rgba(36, 242, 162, 0.12);
+  --body-linear-start: rgba(7, 40, 45, 0.9);
+  --body-linear-end: rgba(4, 23, 27, 0.95);
+  --body-surface: color-mix(in srgb, var(--graphite) 85%, #01080a 15%);
+  --color-evm-panel: color-mix(in srgb, var(--graphite) 80%, #03161b 20%);
+  --color-evm-muted: #9cb6c0;
+  --color-border: color-mix(in srgb, var(--matrix) 25%, transparent);
+  --color-panel: color-mix(in srgb, var(--graphite) 80%, #041417 20%);
+  --shadow-elevator: 0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 25px 80px rgba(0, 0, 0, 0.55);
+  --border-lamp: 1px solid color-mix(in srgb, var(--matrix) 30%, transparent);
 }
 
 @theme inline {
@@ -38,31 +69,44 @@
 body {
   min-height: 100vh;
   background:
-      radial-gradient(circle at 15% 15%, rgba(255, 134, 64, 0.08), transparent 40%),
-      radial-gradient(circle at 85% 25%, rgba(184, 71, 63, 0.12), transparent 45%),
-      linear-gradient(180deg, rgba(22, 26, 31, 0.6), rgba(5, 6, 7, 0.9)),
-      color-mix(in srgb, var(--graphite) 90%, #020203 10%);
+      radial-gradient(circle at 15% 15%, var(--body-radial-one), transparent 40%),
+      radial-gradient(circle at 85% 25%, var(--body-radial-two), transparent 45%),
+      linear-gradient(180deg, var(--body-linear-start), var(--body-linear-end)),
+      var(--body-surface);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   letter-spacing: 0.01em;
   text-rendering: optimizeLegibility;
 }
 
-body::before {
+body[data-theme="holiday"]::after {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: repeating-linear-gradient(
-      0deg,
-      transparent 0,
-      transparent 2px,
-      var(--scanline) 2px,
-      var(--scanline) 3px
+  background-image: radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 255, 255, 0.4),
+      transparent 40%
     ),
-    radial-gradient(circle, rgba(255, 255, 255, 0.06), transparent 60%);
-  mix-blend-mode: screen;
-  opacity: 0.6;
+    radial-gradient(circle at 80% 30%, rgba(255, 211, 105, 0.25), transparent 45%),
+    radial-gradient(circle at 40% 80%, rgba(36, 242, 162, 0.3), transparent 35%);
+  opacity: 0.2;
+  animation: snowfall 18s linear infinite;
+  z-index: 5;
+}
+
+body[data-theme="holiday"] .noise-overlay {
+  opacity: 0.08;
+}
+
+@keyframes snowfall {
+  from {
+    transform: translateY(-5%);
+  }
+  to {
+    transform: translateY(5%);
+  }
 }
 
 .noise-overlay {
@@ -72,6 +116,16 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cfilter id='n' x='0%' y='0%' width='100%' height='100%'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E");
   opacity: 0.06;
   z-index: 10;
+}
+
+.theme-switcher {
+  backdrop-filter: blur(12px);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+body[data-theme="holiday"] .theme-switcher {
+  background: color-mix(in srgb, rgba(4, 23, 27, 0.8) 85%, rgba(255, 75, 100, 0.18) 15%);
+  border-color: color-mix(in srgb, #24f2a2 35%, transparent);
 }
 
 .text-glitch {

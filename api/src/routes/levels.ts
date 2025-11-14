@@ -60,10 +60,18 @@ router.get("/week/:week", (request, response) => {
     return response.status(404).json({ message: "Уровень не найден" });
   }
 
+  // Всегда используем getActiveIteration() для получения актуальной информации об активной неделе
+  // Это гарантирует, что currentWeek будет актуальным, даже если администратор изменил его
+  const activeIteration = getActiveIteration();
   const iteration =
     level.iterationId !== null && level.iterationId !== undefined
       ? getIterationById(level.iterationId)
-      : getActiveIteration();
+      : activeIteration;
+  
+  // Если уровень принадлежит активной итерации, используем актуальную информацию об активной неделе
+  const finalIteration = iteration && activeIteration && iteration.id === activeIteration.id
+    ? activeIteration
+    : iteration;
 
   return response.json({
     id: level.id,
@@ -72,14 +80,14 @@ router.get("/week/:week", (request, response) => {
     state: level.state,
     opensAt: level.opensAt,
     closesAt: level.closesAt,
-    iteration: iteration
+    iteration: finalIteration
       ? {
-          id: iteration.id,
-          name: iteration.name,
-          currentWeek: iteration.currentWeek,
-          totalWeeks: iteration.totalWeeks,
-          startsAt: iteration.startsAt.toISOString(),
-          endsAt: iteration.endsAt.toISOString(),
+          id: finalIteration.id,
+          name: finalIteration.name,
+          currentWeek: finalIteration.currentWeek,
+          totalWeeks: finalIteration.totalWeeks,
+          startsAt: finalIteration.startsAt.toISOString(),
+          endsAt: finalIteration.endsAt.toISOString(),
         }
       : undefined,
     config: {

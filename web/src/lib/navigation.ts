@@ -1,4 +1,4 @@
-import { Compass, LayoutDashboard, MessageSquare, Radio, Ticket } from "lucide-react";
+import { ClipboardList, LayoutDashboard, MessageSquare, Radio, Ticket } from "lucide-react";
 
 export const NAV_LINKS = [
   {
@@ -7,9 +7,9 @@ export const NAV_LINKS = [
     icon: LayoutDashboard,
   },
   {
-    label: "Levels",
+    label: "Tasks",
     href: "/levels",
-    icon: Compass,
+    icon: ClipboardList,
   },
   {
     label: "Team",
