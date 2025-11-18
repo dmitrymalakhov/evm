@@ -103,13 +103,13 @@ export function getWeeklyActivityStats(startDate?: Date, endDate?: Date) {
 
   const baseQuery = db
     .select({
-      date: sql<string>`strftime('%Y-%m-%d', datetime(${userActions.createdAt}, 'unixepoch'))`,
+      date: sql<string>`strftime('%Y-%m-%d', datetime(${userActions.createdAt} / 1000, 'unixepoch'))`,
       actionType: userActions.actionType,
       count: sql<number>`COUNT(${userActions.id})`,
     })
     .from(userActions)
     .groupBy(
-      sql`strftime('%Y-%m-%d', datetime(${userActions.createdAt}, 'unixepoch'))`,
+      sql`strftime('%Y-%m-%d', datetime(${userActions.createdAt} / 1000, 'unixepoch'))`,
       userActions.actionType,
     );
 
@@ -160,7 +160,7 @@ export function getUserActivityTimeline(userId: string, days = 30) {
 
   return db
     .select({
-      date: sql<string>`strftime('%Y-%m-%d', datetime(${userActions.createdAt}, 'unixepoch'))`,
+      date: sql<string>`strftime('%Y-%m-%d', datetime(${userActions.createdAt} / 1000, 'unixepoch'))`,
       actionType: userActions.actionType,
       count: sql<number>`COUNT(${userActions.id})`,
     })
@@ -172,7 +172,7 @@ export function getUserActivityTimeline(userId: string, days = 30) {
       ),
     )
     .groupBy(
-      sql`strftime('%Y-%m-%d', datetime(${userActions.createdAt}, 'unixepoch'))`,
+      sql`strftime('%Y-%m-%d', datetime(${userActions.createdAt} / 1000, 'unixepoch'))`,
       userActions.actionType,
     )
     .orderBy(userActions.createdAt)

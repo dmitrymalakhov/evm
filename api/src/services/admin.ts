@@ -128,6 +128,13 @@ export function updateTaskSubmission(
       return getTaskSubmissionById(submissionId);
     }
 
+    // Check if level belongs to active iteration
+    const iteration = getActiveIteration();
+    if (!iteration || level.iterationId !== iteration.id) {
+      // Level doesn't belong to active iteration, don't update progress
+      return getTaskSubmissionById(submissionId);
+    }
+
     // Update team progress
     const currentTeamProgress = db
       .select()
@@ -187,10 +194,8 @@ export function updateTaskSubmission(
         .run();
     }
 
-    // Update user week progress
-    const iteration = getActiveIteration();
-    if (iteration && level.iterationId === iteration.id) {
-      const existingUserProgress = db
+    // Update user week progress (iteration already checked above)
+    const existingUserProgress = db
         .select()
         .from(userWeekProgress)
         .where(
@@ -202,30 +207,29 @@ export function updateTaskSubmission(
         )
         .get();
 
-      if (existingUserProgress) {
-        const completedTasks = existingUserProgress.completedTasks;
-        if (!completedTasks.includes(task.id)) {
-          db.update(userWeekProgress)
-            .set({
-              completedTasks: [...completedTasks, task.id],
-              pointsEarned: existingUserProgress.pointsEarned + task.points,
-            })
-            .where(eq(userWeekProgress.id, existingUserProgress.id))
-            .run();
-        }
-      } else {
-        db.insert(userWeekProgress)
-          .values({
-            id: crypto.randomUUID(),
-            userId: submission.userId,
-            iterationId: iteration.id,
-            week: level.week,
-            completedTasks: [task.id],
-            pointsEarned: task.points,
-            isCompleted: false,
+    if (existingUserProgress) {
+      const completedTasks = existingUserProgress.completedTasks;
+      if (!completedTasks.includes(task.id)) {
+        db.update(userWeekProgress)
+          .set({
+            completedTasks: [...completedTasks, task.id],
+            pointsEarned: existingUserProgress.pointsEarned + task.points,
           })
+          .where(eq(userWeekProgress.id, existingUserProgress.id))
           .run();
       }
+    } else {
+      db.insert(userWeekProgress)
+        .values({
+          id: crypto.randomUUID(),
+          userId: submission.userId,
+          iterationId: iteration.id,
+          week: level.week,
+          completedTasks: [task.id],
+          pointsEarned: task.points,
+          isCompleted: false,
+        })
+        .run();
     }
 
     // Log task completion

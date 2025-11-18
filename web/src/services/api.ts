@@ -4,6 +4,7 @@ import {
   type Idea,
   type Iteration,
   type Level,
+  type SecretSantaState,
   type SubmissionResponse,
   type Task,
   type TaskCompletionByWeek,
@@ -156,7 +157,10 @@ function createHeaders(init?: HeadersInit) {
 }
 
 async function parseErrorMessage(response: Response) {
+  // Клонируем response, чтобы можно было прочитать body несколько раз
+  const clonedResponse = response.clone();
   const contentType = response.headers.get("content-type");
+  
   if (contentType?.includes("application/json")) {
     try {
       const data = await response.json();
@@ -168,14 +172,21 @@ async function parseErrorMessage(response: Response) {
       }
       return JSON.stringify(data);
     } catch {
-      // ignore json parse errors
+      // Если не удалось распарсить JSON, пробуем прочитать как текст из клона
+      try {
+        const text = await clonedResponse.text();
+        if (text) return text;
+      } catch {
+        // ignore text parse errors
+      }
     }
-  }
-  try {
-    const text = await response.text();
-    if (text) return text;
-  } catch {
-    // ignore text parse errors
+  } else {
+    try {
+      const text = await response.text();
+      if (text) return text;
+    } catch {
+      // ignore text parse errors
+    }
   }
   return response.statusText;
 }
@@ -358,6 +369,30 @@ export const api = {
 
   getTeamProgress: (teamId: string) =>
     request<TeamProgressSummary>(`/teams/${teamId}/progress`),
+
+  getSecretSantaState: () => request<SecretSantaState>("/secret-santa"),
+
+  registerSecretSanta: (payload: { wishlist: string; reminderNote?: string | null }) =>
+    request<SecretSantaState>("/secret-santa/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  drawSecretSanta: () =>
+    request<SecretSantaState>("/secret-santa/draw", {
+      method: "POST",
+    }),
+
+  markSecretSantaGifted: () =>
+    request<SecretSantaState>("/secret-santa/gift", {
+      method: "POST",
+    }),
+
+  updateSecretSantaReminder: (reminderNote: string) =>
+    request<SecretSantaState>("/secret-santa/reminder", {
+      method: "POST",
+      body: JSON.stringify({ reminderNote }),
+    }),
 
   getAdminLevels: () => request<Level[]>("/admin/levels"),
 

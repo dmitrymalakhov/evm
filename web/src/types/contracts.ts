@@ -212,3 +212,29 @@ export type UserActivityTimeline = {
   count: number;
 };
 
+export type SecretSantaParticipantStatus = "waiting" | "matched" | "gifted";
+
+export type SecretSantaParticipant = {
+  id: string;
+  name: string;
+  department: string;
+  wishlist: string;
+  status: SecretSantaParticipantStatus;
+};
+
+export type SecretSantaState = {
+  participants: SecretSantaParticipant[];
+  stats: {
+    total: number;
+    matched: number;
+    gifted: number;
+  };
+  me: {
+    participant: (SecretSantaParticipant & {
+      reminderNote: string | null;
+      matchedUserId: string | null;
+    }) | null;
+    recipient: SecretSantaParticipant | null;
+  };
+};
+

@@ -12,11 +12,15 @@ const submissionSchema = z.record(z.string(), z.unknown()).default({});
 router.get("/submissions", (request, response) => {
   try {
     const user = getRequestUser(request, true);
+    if (!user) {
+      return response.status(401).json({ message: "Пользователь не авторизован" });
+    }
+
     const taskIds = typeof request.query.taskIds === "string"
       ? request.query.taskIds.split(",")
       : undefined;
 
-    const submissions = getUserTaskSubmissions(user!.id, taskIds);
+    const submissions = getUserTaskSubmissions(user.id, taskIds);
     return response.json(
       submissions.map((sub) => ({
         taskId: sub.taskId,
@@ -49,11 +53,15 @@ router.post("/:taskId/submit", (request, response) => {
 
   try {
     const user = getRequestUser(request, true);
+    if (!user) {
+      return response.status(401).json({ status: "rejected", message: "Пользователь не авторизован" });
+    }
+
     const payload = submissionSchema.parse(request.body ?? {});
 
     const submission = saveTaskSubmission({
       taskId: task.id,
-      userId: user!.id,
+      userId: user.id,
       body: payload,
     });
 

@@ -64,7 +64,7 @@ export default function ValidatorPage() {
           <Input
             value={code}
             onChange={(event) => setCode(event.target.value.toUpperCase())}
-            placeholder="EVM-QR-MOCK-123"
+            placeholder="EVM-QR-XXXX-XXXX"
           />
           <Button type="submit" disabled={isChecking || code.trim().length < 6}>
             {isChecking ? "Проверка..." : "Проверить"}

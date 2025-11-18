@@ -89,7 +89,3 @@ export function getUserByToken(accessToken?: string | null) {
   return user ?? null;
 }
 
-export function getDefaultUser() {
-  return db.select().from(users).limit(1).get();
-}
-

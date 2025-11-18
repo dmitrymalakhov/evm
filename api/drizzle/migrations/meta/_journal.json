@@ -29,6 +29,13 @@
       "when": 1732000000000,
       "tag": "0003_add_user_actions",
       "breakpoints": false
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1732100000000,
+      "tag": "0004_add_secret_santa",
+      "breakpoints": false
     }
   ]
 }

@@ -10,6 +10,7 @@ import {
   ideas,
   iterations,
   levels,
+  secretSantaParticipants,
   sessions,
   taskSubmissions,
   tasks,
@@ -28,6 +29,7 @@ function resetTables() {
   const tables = [
     "user_week_progress",
     "sessions",
+    "secret_santa_participants",
     "task_submissions",
     "comments",
     "thoughts",
@@ -121,6 +123,44 @@ function seedCore() {
     },
   ]).run();
 
+  const now = Date.now();
+
+  db.insert(secretSantaParticipants).values([
+    {
+      id: "ss-u1",
+      userId: "u1",
+      wishlist: "Что-то с неоновыми огнями и тёплыми нитями",
+      status: "gifted",
+      reminderNote: "Привезти открытку для оператора",
+      matchedUserId: "u2",
+      matchedAt: new Date(now - 1000 * 60 * 60 * 24 * 4),
+      giftedAt: new Date(now - 1000 * 60 * 60 * 24 * 2),
+      createdAt: new Date(now - 1000 * 60 * 60 * 24 * 7),
+      updatedAt: new Date(),
+    },
+    {
+      id: "ss-u2",
+      userId: "u2",
+      wishlist: "Коллекционная катушка или редкая настольная игра",
+      status: "matched",
+      reminderNote: "Найти игру до 15 декабря",
+      matchedUserId: "u3",
+      matchedAt: new Date(now - 1000 * 60 * 60 * 24 * 3),
+      createdAt: new Date(now - 1000 * 60 * 60 * 24 * 6),
+      updatedAt: new Date(),
+    },
+    {
+      id: "ss-u3",
+      userId: "u3",
+      wishlist: "Ароматический набор «Северное сияние»",
+      status: "waiting",
+      reminderNote: null,
+      matchedUserId: null,
+      createdAt: new Date(now - 1000 * 60 * 60 * 24 * 5),
+      updatedAt: new Date(),
+    },
+  ]).run();
+
   db.insert(teamMembers).values([
     { teamId: "t1", userId: "u1", joinedAt: new Date() },
     { teamId: "t1", userId: "u2", joinedAt: new Date() },
@@ -171,7 +211,6 @@ function seedCore() {
     },
   ]).run();
 
-  const now = Date.now();
   db.insert(thoughts).values([
     {
       id: "th1",
@@ -236,8 +275,8 @@ function seedCore() {
   db.insert(tickets).values({
     id: "tk1",
     userId: "u1",
-    qr: "EVM-QR-MOCK-123",
-    pdfUrl: "/mock/ticket.pdf",
+    qr: "EVM-QR-U1-20251103",
+    pdfUrl: "/tickets/tk1/pdf",
     status: "issued",
   }).run();
 
@@ -383,16 +422,7 @@ function main() {
     .where(eq(sessions.userId, "u1"))
     .get();
 
-  if (!session) {
-    db.insert(sessions).values({
-      id: "sess-u1",
-      userId: "u1",
-      accessToken: "access-mock-token",
-      refreshToken: "refresh-mock-token",
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
-      createdAt: new Date(),
-    }).run();
-  }
+  // Session will be created on login via auth service
 
   console.log("Database seeded successfully.");
 }

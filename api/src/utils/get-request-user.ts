@@ -1,6 +1,6 @@
 import type { Request } from "express";
 
-import { getDefaultUser, getUserByToken } from "../services/auth";
+import { getUserByToken } from "../services/auth";
 
 export function getRequestUser(request: Request, requireUser = false) {
   const authorization = request.headers.authorization;
@@ -14,12 +14,13 @@ export function getRequestUser(request: Request, requireUser = false) {
     return user;
   }
 
-  if (requireUser && !user) {
+  if (requireUser) {
     const error = new Error("Пользователь не авторизован");
     error.name = "UnauthorizedError";
     throw error;
   }
 
-  return getDefaultUser();
+  // Не возвращаем дефолтного пользователя - это небезопасно
+  return null;
 }
 

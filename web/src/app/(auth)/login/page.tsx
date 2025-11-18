@@ -44,7 +44,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      router.replace("/dashboard");
+      router.replace("/levels");
     }
   }, [user, router]);
 
@@ -63,7 +63,7 @@ export default function LoginPage() {
         description: "Вы перенаправлены в личный кабинет E.V.M.",
       });
       track(ANALYTICS_EVENTS.loginSuccess, { tabNumber: values.tabNumber });
-      router.push("/dashboard");
+      router.push("/levels");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Неизвестная ошибка входа";

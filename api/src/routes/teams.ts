@@ -54,10 +54,14 @@ router.post("/:teamId/chat", (request, response) => {
 
   try {
     const user = getRequestUser(request, true);
+    if (!user) {
+      return response.status(401).json({ message: "Пользователь не авторизован" });
+    }
+
     const payload = chatSchema.parse(request.body);
     const message = addTeamChatMessage(team.id, {
-      userId: user!.id,
-      userName: user!.name,
+      userId: user.id,
+      userName: user.name,
       body: payload.body.trim(),
     });
     return response.status(201).json(message);
@@ -168,7 +172,7 @@ router.post("/:teamId/ideas/:ideaId/vote", (request, response) => {
       return response.status(401).json({ message: "Пользователь не авторизован" });
     }
 
-    const updated = voteForIdea(team.id, request.params.ideaId, user!.id);
+    const updated = voteForIdea(team.id, request.params.ideaId, user.id);
     if (!updated) {
       return response.status(404).json({ message: "Идея не найдена" });
     }
@@ -231,8 +235,16 @@ router.get("/:teamId/progress", (request, response) => {
   }
 
   const progress = getTeamProgress(team.id);
+  // Если прогресс не найден, возвращаем пустой прогресс (для новой команды)
   if (!progress) {
-    return response.status(404).json({ message: "Прогресс команды не найден" });
+    return response.json({
+      progress: 0,
+      totalPoints: 0,
+      completedTasks: [],
+      unlockedKeys: [],
+      completedWeeks: [],
+      weeklyStats: [],
+    });
   }
 
   return response.json({

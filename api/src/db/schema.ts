@@ -319,6 +319,34 @@ export const userActions = sqliteTable(
     }),
 );
 
+export const secretSantaParticipants = sqliteTable(
+    "secret_santa_participants",
+    {
+        id: text("id").primaryKey(),
+        userId: text("user_id")
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        wishlist: text("wishlist").notNull(),
+        status: text("status").notNull(),
+        reminderNote: text("reminder_note"),
+        matchedUserId: text("matched_user_id").references(() => users.id, {
+            onDelete: "set null",
+        }),
+        matchedAt: integer("matched_at", { mode: "timestamp" }),
+        giftedAt: integer("gifted_at", { mode: "timestamp" }),
+        createdAt: integer("created_at", { mode: "timestamp" })
+            .$defaultFn(() => new Date())
+            .notNull(),
+        updatedAt: integer("updated_at", { mode: "timestamp" })
+            .$defaultFn(() => new Date())
+            .notNull(),
+    },
+    (table) => ({
+        userIdIdx: uniqueIndex("secret_santa_user_idx").on(table.userId),
+        matchedIdx: index("secret_santa_matched_idx").on(table.matchedUserId),
+    }),
+);
+
 export const usersRelations = relations(users, ({ one, many }) => ({
     team: one(teams, {
         fields: [users.teamId],

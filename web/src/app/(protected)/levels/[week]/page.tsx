@@ -12,8 +12,8 @@ import { useTeamStore } from "@/store/use-team-store";
 import { ProgressBar } from "@/components/progress-bar";
 import { ConsoleFrame } from "@/components/ui/console-frame";
 import { TeletypeText } from "@/components/ui/teletype-text";
-import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
+import { Timer } from "@/components/timer";
 
 export default function LevelWeekPage() {
   const params = useParams<{ week: string }>();
@@ -23,7 +23,7 @@ export default function LevelWeekPage() {
     [params?.week],
   );
   const { user } = useSessionStore();
-  const { currentLevel, tasks, isLoading, loadLevel, submitTask } = useLevelStore();
+  const { currentLevel, tasks, isLoading, loadLevel, submitTask, unlockedKeys } = useLevelStore();
   const { progress } = useTeamStore();
 
   const reloadLevel = useCallback(() => {
@@ -109,6 +109,10 @@ export default function LevelWeekPage() {
   const activeWeek = currentLevel?.iteration?.currentWeek;
   const totalWeeks = currentLevel?.iteration?.totalWeeks ?? 0;
   const currentWeek = weekNumber || currentLevel?.week || 0;
+  const closesAtTarget =
+    currentLevel?.closesAt ?? new Date(Date.now() + 86_400_000).toISOString();
+  const totalKeySlots = currentLevel?.iteration?.totalWeeks ?? 6;
+  const unlockedKeyCount = unlockedKeys.length;
   const isActiveWeek = activeWeek === currentWeek;
   const isLevelOpen = currentLevel?.state === "open";
 
@@ -211,8 +215,8 @@ export default function LevelWeekPage() {
 
         </div>
 
-        <div className={`grid gap-6 ${hasStoryline ? "lg:grid-cols-2" : ""}`}>
-          <ConsoleFrame className="p-6">
+        <div className={`grid gap-6 ${hasStoryline ? "lg:grid-cols-[3fr_2fr]" : ""}`}>
+          <ConsoleFrame className="p-6 space-y-6">
             <div className="space-y-5">
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
@@ -246,6 +250,22 @@ export default function LevelWeekPage() {
               <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
                 После отправки решения карточка автоматически обновится.
               </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-md border border-evm-steel/40 bg-black/20 p-4">
+                <Timer target={closesAtTarget} label="До конца недели" />
+              </div>
+              <div className="rounded-md border border-evm-accent/30 bg-evm-accent/5 p-4">
+                <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
+                  Открытые ключи
+                </p>
+                <p className="mt-2 text-3xl font-semibold text-evm-accent">
+                  {unlockedKeyCount > 0 ? unlockedKeyCount : "—"}
+                </p>
+                <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
+                  {totalKeySlots > 0 ? `из ${totalKeySlots}` : "без ограничения"}
+                </p>
+              </div>
             </div>
           </ConsoleFrame>
 
