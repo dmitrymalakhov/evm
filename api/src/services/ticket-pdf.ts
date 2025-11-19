@@ -4,6 +4,28 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/client";
 import { tickets, users, userWeekProgress } from "../db/schema";
 
+// Простая функция транслитерации для кириллицы
+function transliterate(text: string): string {
+  const cyrillicToLatin: Record<string, string> = {
+    а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "yo", ж: "zh",
+    з: "z", и: "i", й: "y", к: "k", л: "l", м: "m", н: "n", о: "o",
+    п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f", х: "h", ц: "ts",
+    ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y", ь: "", э: "e", ю: "yu",
+    я: "ya",
+    А: "A", Б: "B", В: "V", Г: "G", Д: "D", Е: "E", Ё: "Yo", Ж: "Zh",
+    З: "Z", И: "I", Й: "Y", К: "K", Л: "L", М: "M", Н: "N", О: "O",
+    П: "P", Р: "R", С: "S", Т: "T", У: "U", Ф: "F", Х: "H", Ц: "Ts",
+    Ч: "Ch", Ш: "Sh", Щ: "Sch", Ъ: "", Ы: "Y", Ь: "", Э: "E", Ю: "Yu",
+    Я: "Ya",
+  };
+
+  return text
+    .split("")
+    .map((char) => cyrillicToLatin[char] || char)
+    .join("")
+    .toUpperCase();
+}
+
 export function generateTicketPDF(ticketId: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
@@ -31,24 +53,28 @@ export function generateTicketPDF(ticketId: string): Promise<Buffer> {
         return;
       }
 
-      // Получаем общее количество баллов пользователя
-      const allProgress = db
+      // Получаем персональные баллы пользователя из userWeekProgress
+      // Персональные баллы хранятся в pointsEarned для каждой недели
+      const userProgress = db
         .select({
           pointsEarned: userWeekProgress.pointsEarned,
+          week: userWeekProgress.week,
         })
         .from(userWeekProgress)
         .where(eq(userWeekProgress.userId, user.id))
         .all();
 
-      const totalPoints = allProgress.reduce(
+      // Суммируем все персональные баллы пользователя из всех недель
+      const totalPoints = userProgress.reduce(
         (sum, progress) => sum + (progress.pointsEarned || 0),
         0,
       );
 
-      // Создаем PDF документ
+      // Создаем PDF документ с поддержкой Unicode
       const doc = new PDFDocument({
         size: "A4",
         margin: 50,
+        autoFirstPage: true,
       });
 
       const chunks: Buffer[] = [];
@@ -69,113 +95,217 @@ export function generateTicketPDF(ticketId: string): Promise<Buffer> {
       const pageHeight = doc.page.height;
       const margin = 50;
 
-      // Фон (темный)
-      doc.rect(0, 0, pageWidth, pageHeight).fillColor("#000000").fill();
+      // Новогодний фон (темный с градиентом)
+      doc.rect(0, 0, pageWidth, pageHeight).fillColor("#0a0a0a").fill();
+      
+      // Декоративные новогодние элементы - снежинки
+      const drawSnowflake = (x: number, y: number, size: number) => {
+        doc.save();
+        doc.translate(x, y);
+        doc.strokeColor("#ffffff").lineWidth(0.5);
+        for (let i = 0; i < 6; i++) {
+          doc.rotate(60);
+          doc.moveTo(0, 0).lineTo(0, size);
+          doc.moveTo(-size * 0.3, size * 0.3).lineTo(size * 0.3, -size * 0.3);
+          doc.stroke();
+        }
+        doc.restore();
+      };
 
-      // Заголовок
+      // Рисуем снежинки по краям
+      drawSnowflake(80, 100, 8);
+      drawSnowflake(pageWidth - 80, 120, 6);
+      drawSnowflake(100, pageHeight - 150, 7);
+      drawSnowflake(pageWidth - 100, pageHeight - 100, 5);
+      drawSnowflake(150, 300, 6);
+      drawSnowflake(pageWidth - 150, 400, 7);
+
+      // Звезды
+      const drawStar = (x: number, y: number, size: number, color: string) => {
+        doc.save();
+        doc.translate(x, y);
+        doc.fillColor(color).strokeColor(color).lineWidth(1);
+        const points = 5;
+        const outerRadius = size;
+        const innerRadius = size * 0.4;
+        doc.path(`M 0,${-outerRadius}`);
+        for (let i = 0; i < points * 2; i++) {
+          const angle = (i * Math.PI) / points;
+          const radius = i % 2 === 0 ? outerRadius : innerRadius;
+          const px = Math.sin(angle) * radius;
+          const py = -Math.cos(angle) * radius;
+          doc.lineTo(px, py);
+        }
+        doc.closePath().fill();
+        doc.restore();
+      };
+
+      // Рисуем золотые звезды
+      drawStar(pageWidth / 2, 80, 12, "#FFD700");
+      drawStar(120, 200, 8, "#FFD700");
+      drawStar(pageWidth - 120, 250, 9, "#FFD700");
+
+      // Новогодний заголовок с эффектом
       doc
-        .fontSize(32)
+        .fontSize(36)
         .font("Helvetica-Bold")
-        .fillColor("#00ff00")
-        .text("E.V.M.", margin, margin + 20, { align: "center" });
+        .fillColor("#FFD700")
+        .text("E.V.M.", margin, margin + 15, { align: "center" });
 
-      // Подзаголовок
+      // Подзаголовок - новогодний стиль
       doc
-        .fontSize(16)
+        .fontSize(18)
+        .font("Helvetica-Bold")
+        .fillColor("#FF0000")
+        .text("NEW YEAR 2025", margin, margin + 55, { align: "center" });
+      
+      doc
+        .fontSize(14)
         .font("Helvetica")
-        .fillColor("#00ff00")
-        .text("ПРОПУСК ОПЕРАТОРА", margin, margin + 60, { align: "center" });
+        .fillColor("#00FF00")
+        .text("PROPUSK OPERATORA", margin, margin + 75, { align: "center" });
 
-      // Разделительная линия
+      // Новогодние разделительные линии (красная и золотая)
       doc
-        .moveTo(margin, margin + 100)
-        .lineTo(pageWidth - margin, margin + 100)
-        .strokeColor("#00ff00")
+        .moveTo(margin, margin + 105)
+        .lineTo(pageWidth - margin, margin + 105)
+        .strokeColor("#FF0000")
+        .lineWidth(2)
+        .stroke();
+      
+      doc
+        .moveTo(margin, margin + 110)
+        .lineTo(pageWidth - margin, margin + 110)
+        .strokeColor("#FFD700")
         .lineWidth(1)
         .stroke();
 
       // Информация о пользователе
-      let yPos = margin + 130;
+      let yPos = margin + 140;
 
+      // Елочные игрушки как декоративные элементы
+      const drawOrnament = (x: number, y: number, color: string) => {
+        doc.circle(x, y, 5).fillColor(color).fill();
+        doc.circle(x, y, 3).fillColor("#FFD700").fill();
+      };
+
+      // Информация о пользователе с новогодним стилем
       doc
         .fontSize(12)
         .font("Helvetica")
-        .fillColor("#888888")
-        .text("ОПЕРАТОР:", margin, yPos);
+        .fillColor("#FFD700");
+      doc.text("OPERATOR:", margin, yPos);
+      drawOrnament(margin + 100, yPos + 5, "#FF0000");
       doc
         .font("Helvetica-Bold")
-        .fillColor("#00ff00")
-        .text(user.name, margin + 120, yPos);
-      yPos += 30;
+        .fillColor("#00FF00");
+      const userName = user.name ? transliterate(user.name) : "UNKNOWN";
+      doc.text(userName, margin + 120, yPos);
+      yPos += 35;
 
       doc
         .font("Helvetica")
-        .fillColor("#888888")
-        .text("ТАБЕЛЬНЫЙ НОМЕР:", margin, yPos);
+        .fillColor("#FFD700");
+      doc.text("TABELNYI NOMER:", margin, yPos);
+      drawOrnament(margin + 160, yPos + 5, "#00FF00");
       doc
         .font("Helvetica-Bold")
-        .fillColor("#00ff00")
-        .text(user.tabNumber, margin + 180, yPos);
-      yPos += 30;
+        .fillColor("#FFD700");
+      doc.text(user.tabNumber, margin + 180, yPos);
+      yPos += 35;
 
-      // Баллы (выделяем)
+      // Баллы (выделяем новогодним стилем)
       doc
         .font("Helvetica")
-        .fillColor("#888888")
-        .text("ЗАРАБОТАНО БАЛЛОВ:", margin, yPos);
+        .fillColor("#FFD700");
+      doc.text("ZARABOTANO BALLOV:", margin, yPos);
+      drawStar(margin + 190, yPos + 8, 6, "#FFD700");
       doc
-        .fontSize(18)
+        .fontSize(20)
         .font("Helvetica-Bold")
-        .fillColor("#00ff00")
-        .text(totalPoints.toString(), margin + 200, yPos - 3);
+        .fillColor("#FF0000");
+      doc.text(totalPoints.toString(), margin + 200, yPos - 3);
       yPos += 50;
 
-      // Разделительная линия
+      // Новогодние разделительные линии
       doc
         .moveTo(margin, yPos)
         .lineTo(pageWidth - margin, yPos)
-        .strokeColor("#00ff00")
+        .strokeColor("#00FF00")
+        .lineWidth(2)
+        .stroke();
+      
+      doc
+        .moveTo(margin, yPos + 5)
+        .lineTo(pageWidth - margin, yPos + 5)
+        .strokeColor("#FFD700")
         .lineWidth(1)
         .stroke();
 
-      yPos += 30;
+      yPos += 40;
 
-      // QR код
+      // Новогоднее поздравление
+      doc
+        .fontSize(14)
+        .font("Helvetica-Bold")
+        .fillColor("#FFD700");
+      doc.text("S NOVYM GODOM 2025!", margin, yPos, { align: "center" });
+      yPos += 25;
+
+      // QR код с новогодним оформлением
       doc
         .fontSize(12)
         .font("Helvetica")
-        .fillColor("#888888")
-        .text("QR КОД:", margin, yPos);
+        .fillColor("#FFD700");
+      doc.text("QR CODE:", margin, yPos);
+      drawOrnament(margin + 90, yPos + 5, "#FF0000");
       doc
         .font("Helvetica-Bold")
-        .fillColor("#00ff00")
-        .text(ticket.qr, margin + 100, yPos);
+        .fillColor("#00FF00");
+      doc.text(ticket.qr, margin + 100, yPos);
       yPos += 50;
 
-      // Дата выдачи
-      const issueDate = new Date().toLocaleDateString("ru-RU", {
+      // Дата выдачи в новогоднем стиле
+      const issueDate = new Date().toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
       });
 
       doc
-        .fontSize(10)
+        .fontSize(11)
         .font("Helvetica")
-        .fillColor("#666666")
-        .text(`Выдан: ${issueDate}`, margin, yPos, { align: "center" });
+        .fillColor("#FFD700");
+      doc.text(`Issued: ${issueDate}`, margin, yPos, { align: "center" });
+      yPos += 20;
 
-      // Подвал
+      // Новогодние украшения внизу
+      drawOrnament(margin + 30, pageHeight - margin - 30, "#FF0000");
+      drawOrnament(pageWidth - margin - 30, pageHeight - margin - 30, "#00FF00");
+      drawStar(pageWidth / 2, pageHeight - margin - 30, 10, "#FFD700");
+
+      // Подвал с новогодним поздравлением
+      doc
+        .fontSize(9)
+        .font("Helvetica-Bold")
+        .fillColor("#FFD700");
+      doc.text(
+        "This pass grants access to the E.V.M. system.",
+        margin,
+        pageHeight - margin - 50,
+        { align: "center" },
+      );
+      
       doc
         .fontSize(8)
         .font("Helvetica")
-        .fillColor("#444444")
-        .text(
-          "Данный пропуск дает право доступа в систему E.V.M.",
-          margin,
-          pageHeight - margin - 20,
-          { align: "center" },
-        );
+        .fillColor("#00FF00");
+      doc.text(
+        "Happy New Year! May your code be bug-free!",
+        margin,
+        pageHeight - margin - 35,
+        { align: "center" },
+      );
 
       // Завершаем документ
       doc.end();

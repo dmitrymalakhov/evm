@@ -15,14 +15,35 @@ if (!fs.existsSync(uploadsDir)) {
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    console.log("🔵 [MULTER] Destination called:", {
+      uploadsDir,
+      exists: fs.existsSync(uploadsDir),
+      fileOriginalName: file.originalname,
+    });
+    // Ensure directory exists
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log("🟢 [MULTER] Created uploads directory:", uploadsDir);
+    }
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     // Generate unique filename: timestamp-random-originalname
+    // Remove spaces and special characters from filename to avoid URL encoding issues
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const ext = path.extname(file.originalname);
-    const basename = path.basename(file.originalname, ext);
-    cb(null, `${basename}-${uniqueSuffix}${ext}`);
+    const basename = path.basename(file.originalname, ext)
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/[^a-zA-Z0-9\-_]/g, "") // Remove special characters except hyphens and underscores
+      .substring(0, 50); // Limit length
+    const filename = `${basename}-${uniqueSuffix}${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+    console.log("🔵 [MULTER] Filename generated:", {
+      originalName: file.originalname,
+      filename,
+      fullPath: filePath,
+    });
+    cb(null, filename);
   },
 });
 

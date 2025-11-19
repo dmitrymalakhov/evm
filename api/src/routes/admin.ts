@@ -8,6 +8,8 @@ import {
   listTaskSubmissions,
   getTaskSubmissionById,
   updateTaskSubmission,
+  recalculateUserPoints,
+  recalculateAllUsersPoints,
 } from "../services/admin";
 import {
   addTask,
@@ -524,6 +526,66 @@ router.put("/moderation/submissions/:submissionId", (request, response) => {
         error instanceof Error
           ? error.message
           : "Не удалось обновить отправку задания",
+    });
+  }
+});
+
+// Эндпоинт для пересчета персональных баллов пользователя
+router.post("/recalculate-user-points/:userId", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user) {
+      return response.status(401).json({ message: "Пользователь не авторизован" });
+    }
+
+    if (user.role !== "admin") {
+      return response.status(403).json({ message: "Только администратор может пересчитывать баллы" });
+    }
+
+    const userId = request.params.userId;
+    recalculateUserPoints(userId);
+
+    return response.json({ message: "Баллы пользователя пересчитаны" });
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось пересчитать баллы",
+    });
+  }
+});
+
+// Эндпоинт для пересчета персональных баллов всех пользователей
+router.post("/recalculate-all-users-points", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user) {
+      return response.status(401).json({ message: "Пользователь не авторизован" });
+    }
+
+    if (user.role !== "admin") {
+      return response.status(403).json({ message: "Только администратор может пересчитывать баллы" });
+    }
+
+    const usersCount = recalculateAllUsersPoints();
+
+    return response.json({ 
+      message: `Баллы пересчитаны для ${usersCount} пользователей`,
+      usersCount 
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось пересчитать баллы",
     });
   }
 });

@@ -35,13 +35,17 @@ export function formatRelative(date: string | number | Date): string {
 
 export function formatTimer(ms: number): string {
   const totalSeconds = Math.max(Math.floor(ms / 1000), 0);
-  const hours = Math.floor(totalSeconds / 3600)
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600)
     .toString()
     .padStart(2, "0");
   const minutes = Math.floor((totalSeconds % 3600) / 60)
     .toString()
     .padStart(2, "0");
   const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  if (days > 0) {
+    return `${days}д ${hours}:${minutes}:${seconds}`;
+  }
   return `${hours}:${minutes}:${seconds}`;
 }
 

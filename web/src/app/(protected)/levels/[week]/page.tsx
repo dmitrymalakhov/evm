@@ -41,22 +41,93 @@ export default function LevelWeekPage() {
 
   // Reload level data when page becomes visible (user returns to tab)
   useEffect(() => {
+    // Flag to prevent reload during file selection
+    let isSelectingFiles = false;
+    let fileSelectionTimeout: NodeJS.Timeout | null = null;
+
+    // Check if file input is active (user might be selecting files)
+    const checkFileSelection = () => {
+      const fileInputs = document.querySelectorAll('input[type="file"]');
+      const hasActiveFileInput = Array.from(fileInputs).some(input => {
+        const htmlInput = input as HTMLInputElement;
+        return htmlInput.files && htmlInput.files.length > 0;
+      });
+      return hasActiveFileInput;
+    };
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        reloadLevel();
+        // Don't reload if user is selecting files
+        if (!isSelectingFiles && !checkFileSelection()) {
+          console.log("🟢 [PAGE] Visibility changed to visible - reloading level");
+          reloadLevel();
+        } else {
+          console.log("🟡 [PAGE] Visibility changed but skipping reload (file selection in progress)");
+        }
       }
     };
 
     const handleFocus = () => {
-      reloadLevel();
+      // Don't reload immediately - wait a bit to see if it's just file dialog closing
+      if (fileSelectionTimeout) {
+        clearTimeout(fileSelectionTimeout);
+      }
+
+      fileSelectionTimeout = setTimeout(() => {
+        // Don't reload if user is selecting files
+        if (!isSelectingFiles && !checkFileSelection()) {
+          console.log("🟢 [PAGE] Window focused - reloading level");
+          reloadLevel();
+        } else {
+          console.log("🟡 [PAGE] Window focused but skipping reload (file selection in progress)");
+        }
+      }, 500); // Wait 500ms to see if file dialog closes
+    };
+
+    // Listen for file input changes to detect file selection
+    const handleFileInputChange = () => {
+      console.log("🟡 [PAGE] File input change detected - marking file selection");
+      isSelectingFiles = true;
+      // Reset flag after a delay
+      setTimeout(() => {
+        isSelectingFiles = false;
+        console.log("🟢 [PAGE] File selection flag reset");
+      }, 2000);
+    };
+
+    // Listen for file input clicks
+    const handleFileInputClick = () => {
+      console.log("🟡 [PAGE] File input click detected - marking file selection");
+      isSelectingFiles = true;
+      // Reset flag after a delay
+      setTimeout(() => {
+        isSelectingFiles = false;
+        console.log("🟢 [PAGE] File selection flag reset");
+      }, 2000);
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("focus", handleFocus);
 
+    // Listen for file input events
+    document.addEventListener("change", (e) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT" && (e.target as HTMLInputElement)?.type === "file") {
+        handleFileInputChange();
+      }
+    }, true);
+
+    document.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT" && (e.target as HTMLInputElement)?.type === "file") {
+        handleFileInputClick();
+      }
+    }, true);
+
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleFocus);
+      if (fileSelectionTimeout) {
+        clearTimeout(fileSelectionTimeout);
+      }
     };
   }, [reloadLevel]);
 

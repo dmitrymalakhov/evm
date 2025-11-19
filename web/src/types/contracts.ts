@@ -238,3 +238,17 @@ export type SecretSantaState = {
   };
 };
 
+export type SecretSantaAdminState = {
+  participants: Array<
+    SecretSantaParticipant & {
+      matchedUserId: string | null;
+      matchedRecipient: SecretSantaParticipant | null;
+    }
+  >;
+  stats: {
+    total: number;
+    matched: number;
+    gifted: number;
+  };
+};
+

@@ -60,6 +60,15 @@ export function saveTaskSubmission(payload: {
   userId: string;
   body: Record<string, unknown>;
 }) {
+  console.log("🔵 [SAVE SUBMISSION] Saving task submission:", {
+    taskId: payload.taskId,
+    userId: payload.userId,
+    body: payload.body,
+    photos: payload.body.photos,
+    photosType: typeof payload.body.photos,
+    isArray: Array.isArray(payload.body.photos),
+  });
+  
   const submission = {
     id: crypto.randomUUID(),
     taskId: payload.taskId,
@@ -70,7 +79,16 @@ export function saveTaskSubmission(payload: {
     message: null,
     createdAt: new Date().toISOString(),
   };
+  
+  console.log("🔵 [SAVE SUBMISSION] Submission object before insert:", {
+    id: submission.id,
+    payload: submission.payload,
+    payloadType: typeof submission.payload,
+  });
+  
   db.insert(taskSubmissions).values(submission).run();
+  
+  console.log("🟢 [SAVE SUBMISSION] Submission saved successfully");
   
   // Log user action
   logUserAction({

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ConsoleFrame } from "@/components/ui/console-frame";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Timer } from "@/components/timer";
 import { cn } from "@/lib/utils";
 import { ApiError, api } from "@/services/api";
 import { useSessionStore } from "@/store/use-session-store";
@@ -36,6 +37,8 @@ const STATUS_META: Record<
   },
 };
 
+const EVENT_DATE = new Date("2024-12-18T00:00:00");
+
 const SECRET_SANTA_PHASES = [
   {
     title: "Регистрация",
@@ -49,7 +52,7 @@ const SECRET_SANTA_PHASES = [
   },
   {
     title: "Обмен",
-    description: "Принесите подарок на оффлайн-встречу E.V.M. 23 декабря.",
+    description: "Принесите подарок на оффлайн-встречу E.V.M. 18 декабря.",
     status: "upcoming" as const,
   },
 ];
@@ -64,7 +67,9 @@ export default function SecretSantaPage() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isReminderSaving, setIsReminderSaving] = useState(false);
+  const [isDrawingAll, setIsDrawingAll] = useState(false);
   const reminderSnapshot = useRef("");
+  const isAdmin = user?.role === "admin";
 
   const participants = santaState?.participants ?? [];
   const currentParticipant = santaState?.me.participant ?? null;
@@ -223,15 +228,56 @@ export default function SecretSantaPage() {
     });
   }, [participants]);
 
+  const handleDrawAll = async () => {
+    const waitingCount = participants.filter((p) => p.status === "waiting").length;
+    if (waitingCount < 2) {
+      toast.error("Нужно минимум 2 участника для жеребьевки");
+      return;
+    }
+
+    if (!confirm(`Запустить жеребьевку для всех ${waitingCount} участников? Это действие нельзя отменить.`)) {
+      return;
+    }
+
+    try {
+      setIsDrawingAll(true);
+      const data = await api.drawAllSecretSanta();
+      setSantaState(data);
+      toast.success("Жеребьевка завершена!", {
+        description: `Все ${waitingCount} участников получили своих получателей.`,
+      });
+    } catch (error) {
+      toast.error("Не удалось запустить жеребьевку", {
+        description: errorDescription(error),
+      });
+    } finally {
+      setIsDrawingAll(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">Совершенно секретно</p>
-        <h1 className="text-3xl font-semibold uppercase tracking-[0.28em]">Тайный Санта</h1>
-        <p className="text-sm uppercase tracking-[0.18em] text-evm-muted max-w-2xl">
-          Включаем праздничный протокол. Поделитесь пожеланиями, вытяните коллегу и подготовьте
-          анонимный подарок, чтобы поддержать командный дух программы ЁЛКА.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">Совершенно секретно</p>
+            <h1 className="text-3xl font-semibold uppercase tracking-[0.28em]">Тайный Санта</h1>
+            <p className="text-sm uppercase tracking-[0.18em] text-evm-muted max-w-2xl">
+              Включаем праздничный протокол. Поделитесь пожеланиями, вытяните коллегу и подготовьте
+              анонимный подарок, чтобы поддержать командный дух программы ЁЛКА.
+            </p>
+          </div>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              onClick={handleDrawAll}
+              disabled={isDrawingAll || participants.filter((p) => p.status === "waiting").length < 2}
+              className="shrink-0"
+            >
+              {isDrawingAll ? "Жеребьевка..." : "Запустить жеребьевку для всех"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
@@ -252,18 +298,24 @@ export default function SecretSantaPage() {
               <div
                 key={phase.title}
                 className={cn(
-                  "rounded-lg border border-white/15 bg-white/5 p-4 text-sm transition-all",
+                  "rounded-lg border border-white/15 bg-white/5 p-5 text-sm transition-all space-y-2",
                   phase.status === "active" ? "border-evm-accent/60 bg-evm-accent/10" : "",
                 )}
               >
                 <p className="text-xs uppercase tracking-[0.28em] text-evm-muted">{phase.title}</p>
-                <p className="mt-2 text-foreground/90">{phase.description}</p>
+                <p className="text-foreground/90 leading-relaxed">{phase.description}</p>
               </div>
             ))}
           </div>
+          <div className="rounded-md border border-evm-accent/30 bg-evm-accent/5 p-5 space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
+              До мероприятия
+            </p>
+            <Timer target={EVENT_DATE.toISOString()} label="18 декабря 2024" />
+          </div>
         </ConsoleFrame>
 
-        <ConsoleFrame className="space-y-4 p-6">
+        <ConsoleFrame className="space-y-5 p-6">
           <div className="flex items-center gap-3">
             <Gift className="h-5 w-5 text-evm-matrix" />
             <div>
@@ -273,26 +325,26 @@ export default function SecretSantaPage() {
               <p className="text-base font-semibold uppercase tracking-[0.18em]">Статистика игры</p>
             </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
+          <div className="grid gap-5 sm:grid-cols-3">
+            <div className="space-y-1.5">
               <p className="text-3xl font-semibold">{participants.length}</p>
-              <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
+              <p className="text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
                 Участников
               </p>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <p className="text-3xl font-semibold text-evm-matrix">
                 {participants.filter((participant) => participant.status !== "waiting").length}
               </p>
-              <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
+              <p className="text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
                 Уже вытянули
               </p>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <p className="text-3xl font-semibold text-evm-accent">
                 {participants.filter((participant) => participant.status === "gifted").length}
               </p>
-              <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
+              <p className="text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
                 Подарков в пути
               </p>
             </div>
@@ -312,7 +364,7 @@ export default function SecretSantaPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <label className="text-xs uppercase tracking-[0.24em] text-evm-muted">
               Твои пожелания
             </label>
@@ -320,21 +372,22 @@ export default function SecretSantaPage() {
               placeholder="Расскажи о любимых цветах, вкусе и маленьких радостях."
               value={wishlistDraft}
               onChange={(event) => setWishlistDraft(event.target.value)}
+              className="min-h-[100px]"
             />
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <label className="text-xs uppercase tracking-[0.24em] text-evm-muted">
               Напоминание для подарка
             </label>
             <Input
-              placeholder="Например: «Купить до 20 декабря и подписать открытку»"
+              placeholder="Например: «Купить до 17 декабря и подписать открытку»"
               value={giftIdea}
               onChange={(event) => setGiftIdea(event.target.value)}
             />
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 pt-2">
             <Button onClick={handleJoin}>Участвовать</Button>
             <Button
               variant="outline"
@@ -352,13 +405,13 @@ export default function SecretSantaPage() {
             </Button>
           </div>
           {!isRegistered && (
-            <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
+            <p className="text-xs uppercase tracking-[0.2em] text-evm-muted pt-1">
               Прежде чем тянуть имя, заполните пожелания и подтвердите участие.
             </p>
           )}
         </ConsoleFrame>
 
-        <ConsoleFrame className="space-y-4 p-6">
+        <ConsoleFrame className="space-y-5 p-6">
           <div className="flex items-center gap-3">
             <HeartHandshake className="h-5 w-5 text-evm-accent" />
             <div>
@@ -372,8 +425,8 @@ export default function SecretSantaPage() {
           </div>
 
           {matchedRecipient ? (
-            <div className="rounded-lg border border-white/15 bg-white/5 p-4 space-y-3">
-              <div>
+            <div className="rounded-lg border border-white/15 bg-white/5 p-5 space-y-4">
+              <div className="space-y-1">
                 <p className="text-sm font-semibold uppercase tracking-[0.24em]">
                   {matchedRecipient.name}
                 </p>
@@ -381,23 +434,23 @@ export default function SecretSantaPage() {
                   {matchedRecipient.department}
                 </p>
               </div>
-              <div>
+              <div className="space-y-2">
                 <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">Пожелания</p>
-                <p className="mt-1 text-sm leading-relaxed text-foreground/90">
+                <p className="text-sm leading-relaxed text-foreground/90">
                   {matchedRecipient.wishlist}
                 </p>
               </div>
-              <div>
+              <div className="space-y-2">
                 <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
                   Твоё напоминание
                 </p>
-                <p className="mt-1 text-sm leading-relaxed text-foreground/80">
+                <p className="text-sm leading-relaxed text-foreground/80">
                   {giftIdea.trim() ? giftIdea : "Добавь заметку, чтобы ничего не забыть."}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-white/20 bg-black/20 p-4 text-sm leading-relaxed text-evm-muted">
+            <div className="rounded-lg border border-dashed border-white/20 bg-black/20 p-5 text-sm leading-relaxed text-evm-muted">
               Пока что мы никому о вас не рассказали. Как только вытянете имя, здесь появится
               карточка с пожеланиями получателя.
             </div>
@@ -424,20 +477,22 @@ export default function SecretSantaPage() {
             return (
               <div
                 key={participant.id}
-                className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-white/12 bg-white/5 px-4 py-3"
+                className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-white/12 bg-white/5 px-5 py-4"
               >
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em]">
-                    {participant.name}
-                  </p>
-                  <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
-                    {participant.department}
-                  </p>
-                  <p className="mt-1 text-[0.8rem] text-evm-muted/90">
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em]">
+                      {participant.name}
+                    </p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
+                      {participant.department}
+                    </p>
+                  </div>
+                  <p className="text-[0.8rem] text-evm-muted/90 leading-relaxed">
                     Хочет: {participant.wishlist}
                   </p>
                 </div>
-                <Badge variant={status.badge}>{status.label}</Badge>
+                <Badge variant={status.badge} className="shrink-0">{status.label}</Badge>
               </div>
             );
           })}

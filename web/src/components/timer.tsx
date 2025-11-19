@@ -34,7 +34,7 @@ export function Timer({ target, label }: TimerProps) {
           {formatTimer(remaining)}
         </span>
         <span className="text-xs uppercase tracking-[0.3em] text-evm-muted">
-          до закрытия
+          до события
         </span>
       </div>
     </div>

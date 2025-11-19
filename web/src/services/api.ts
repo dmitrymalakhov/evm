@@ -5,6 +5,7 @@ import {
   type Iteration,
   type Level,
   type SecretSantaState,
+  type SecretSantaAdminState,
   type SubmissionResponse,
   type Task,
   type TaskCompletionByWeek,
@@ -372,6 +373,9 @@ export const api = {
 
   getSecretSantaState: () => request<SecretSantaState>("/secret-santa"),
 
+  getSecretSantaAdminState: () =>
+    request<SecretSantaAdminState>("/secret-santa/admin"),
+
   registerSecretSanta: (payload: { wishlist: string; reminderNote?: string | null }) =>
     request<SecretSantaState>("/secret-santa/register", {
       method: "POST",
@@ -392,6 +396,11 @@ export const api = {
     request<SecretSantaState>("/secret-santa/reminder", {
       method: "POST",
       body: JSON.stringify({ reminderNote }),
+    }),
+
+  drawAllSecretSanta: () =>
+    request<SecretSantaState>("/secret-santa/admin/draw-all", {
+      method: "POST",
     }),
 
   getAdminLevels: () => request<Level[]>("/admin/levels"),

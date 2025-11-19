@@ -1,4 +1,5 @@
 import { Router } from "express";
+import fs from "fs";
 
 import { getRequestUser } from "../utils/get-request-user";
 import { upload, getFileUrl } from "../utils/upload";
@@ -15,16 +16,42 @@ router.post("/", upload.array("photos", 10), (request, response) => {
 
     const files = request.files as Express.Multer.File[];
     if (!files || files.length === 0) {
+      console.log("🔴 [UPLOAD] No files received");
       return response.status(400).json({ message: "Файлы не загружены" });
     }
 
-    const fileUrls = files.map((file) => ({
-      filename: file.filename,
-      originalName: file.originalname,
-      url: getFileUrl(file.filename),
-      size: file.size,
-      mimetype: file.mimetype,
-    }));
+    console.log("🔵 [UPLOAD] Received files:", {
+      count: files.length,
+      files: files.map(f => ({
+        filename: f.filename,
+        originalName: f.originalname,
+        size: f.size,
+        mimetype: f.mimetype,
+        path: f.path,
+        destination: f.destination,
+      })),
+    });
+
+    const fileUrls = files.map((file) => {
+      const fileUrl = getFileUrl(file.filename);
+      console.log("🔵 [UPLOAD] Processing file:", {
+        filename: file.filename,
+        originalName: file.originalname,
+        url: fileUrl,
+        path: file.path,
+        size: file.size,
+        exists: fs.existsSync(file.path),
+      });
+      return {
+        filename: file.filename,
+        originalName: file.originalname,
+        url: fileUrl,
+        size: file.size,
+        mimetype: file.mimetype,
+      };
+    });
+
+    console.log("🟢 [UPLOAD] Returning file URLs:", fileUrls);
 
     return response.json({
       files: fileUrls,

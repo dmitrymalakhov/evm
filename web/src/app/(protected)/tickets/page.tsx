@@ -73,7 +73,7 @@ export default function TicketsPage() {
           <p className="text-sm uppercase tracking-[0.2em] text-evm-muted">
             Статус: {ticket.status === "issued" ? "выдан" : "не готов"}
           </p>
-          <PDFDownloadButton href={ticket.pdfUrl} />
+          <PDFDownloadButton ticketId={ticket.id} />
         </div>
       </ConsoleFrame>
     </div>

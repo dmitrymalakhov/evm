@@ -4,7 +4,9 @@ import { z } from "zod";
 import {
   SecretSantaError,
   drawSecretSantaRecipient,
+  drawAllSecretSantaRecipients,
   getSecretSantaState,
+  getSecretSantaAdminState,
   markSecretSantaGifted,
   registerSecretSantaParticipant,
   updateSecretSantaReminder,
@@ -111,6 +113,42 @@ router.post("/reminder", (request, response) => {
 
     const payload = reminderSchema.parse(request.body);
     const state = updateSecretSantaReminder(user.id, payload.reminderNote ?? "");
+    return response.json(state);
+  } catch (error) {
+    return handleRouteError(error, response);
+  }
+});
+
+router.get("/admin", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user) {
+      return response.status(401).json({ message: "Пользователь не авторизован" });
+    }
+
+    if (user.role !== "admin") {
+      return response.status(403).json({ message: "Только администратор может просматривать полную информацию" });
+    }
+
+    const state = getSecretSantaAdminState();
+    return response.json(state);
+  } catch (error) {
+    return handleRouteError(error, response);
+  }
+});
+
+router.post("/admin/draw-all", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user) {
+      return response.status(401).json({ message: "Пользователь не авторизован" });
+    }
+
+    if (user.role !== "admin") {
+      return response.status(403).json({ message: "Только администратор может запустить массовую жеребьевку" });
+    }
+
+    const state = drawAllSecretSantaRecipients();
     return response.json(state);
   } catch (error) {
     return handleRouteError(error, response);

@@ -261,3 +261,67 @@ export function updateSecretSantaReminder(userId: string, reminderNote: string) 
   return getSecretSantaState(userId);
 }
 
+export function drawAllSecretSantaRecipients() {
+  const now = new Date();
+
+  return db.transaction((tx) => {
+    // Get all participants who haven't been matched yet
+    const waitingParticipants = tx
+      .select({
+        userId: secretSantaParticipants.userId,
+      })
+      .from(secretSantaParticipants)
+      .where(eq(secretSantaParticipants.matchedUserId, null))
+      .all();
+
+    if (waitingParticipants.length < 2) {
+      throw new SecretSantaError("no_candidates");
+    }
+
+    // Create a shuffled list of user IDs for matching
+    const userIds = waitingParticipants.map((p) => p.userId);
+    const shuffled = [...userIds].sort(() => Math.random() - 0.5);
+
+    // Match each participant with the next one in the shuffled list
+    // This ensures everyone gets a match and no one matches with themselves
+    for (let i = 0; i < shuffled.length; i++) {
+      const currentUserId = shuffled[i];
+      // Get the next user in the list (wrapping around to the first if at the end)
+      const targetUserId = shuffled[(i + 1) % shuffled.length];
+
+      tx.update(secretSantaParticipants)
+        .set({
+          matchedUserId: targetUserId,
+          status: "matched",
+          matchedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(secretSantaParticipants.userId, currentUserId))
+        .run();
+    }
+
+    return getSecretSantaState();
+  });
+}
+
+export function getSecretSantaAdminState() {
+  const rows = fetchParticipantRows();
+  const participants = rows.map(mapRowToView);
+  const participantById = new Map(participants.map((participant) => [participant.id, participant]));
+
+  return {
+    participants: rows.map((row) => ({
+      ...mapRowToView(row),
+      matchedUserId: row.matchedUserId,
+      matchedRecipient: row.matchedUserId
+        ? participantById.get(row.matchedUserId) ?? null
+        : null,
+    })),
+    stats: {
+      total: participants.length,
+      matched: participants.filter((participant) => participant.status !== "waiting").length,
+      gifted: participants.filter((participant) => participant.status === "gifted").length,
+    },
+  };
+}
+

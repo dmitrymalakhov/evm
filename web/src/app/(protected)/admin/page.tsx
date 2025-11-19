@@ -13,26 +13,89 @@ import { Label } from "@/components/ui/label";
 import { AnalyticsPanel } from "@/components/admin/analytics-panel";
 import { MetricsPanel } from "@/components/admin/metrics-panel";
 import { api } from "@/services/api";
-import type { AdminMetrics, Level, Task, Iteration } from "@/types/contracts";
+import type {
+  AdminMetrics,
+  Level,
+  Task,
+  Iteration,
+  SecretSantaState,
+  SecretSantaAdminState,
+} from "@/types/contracts";
 import { cn } from "@/lib/utils";
 
 // Helper function to resolve photo URL to absolute URL
-function resolvePhotoUrl(photo: string): string {
-  if (photo.startsWith("http://") || photo.startsWith("https://")) {
-    return photo;
+function resolvePhotoUrl(photo: string | unknown): string {
+  try {
+    // Handle non-string values
+    if (typeof photo !== "string") {
+      console.error("resolvePhotoUrl: photo is not a string", { photo, type: typeof photo });
+      return "";
+    }
+
+    if (!photo || photo.trim() === "") {
+      console.error("resolvePhotoUrl: photo is empty");
+      return "";
+    }
+
+    // If already absolute URL, encode it properly to handle spaces and special characters
+    if (photo.startsWith("http://") || photo.startsWith("https://")) {
+      try {
+        // Try to parse and reconstruct URL properly
+        // First, try to use URL constructor - it will throw if URL is invalid (e.g., has spaces)
+        try {
+          const url = new URL(photo);
+          // If successful, URL is valid - return as-is (URL constructor handles encoding)
+          console.log("🔵 [resolvePhotoUrl] URL parsed successfully:", { original: photo, parsed: url.toString() });
+          return url.toString();
+        } catch (urlError) {
+          // URL parsing failed (likely due to spaces or special chars) - manually encode
+          console.log("🟡 [resolvePhotoUrl] URL parsing failed, encoding manually:", { original: photo, error: urlError });
+
+          // Extract protocol, host, and path manually
+          const match = photo.match(/^(https?:\/\/[^\/]+)(\/.*)?$/);
+          if (match) {
+            const [, base, path = ""] = match;
+            // Encode each path segment separately
+            const encodedPath = path.split("/").map(segment => {
+              if (!segment) return segment;
+              // Decode first in case it's already partially encoded, then encode properly
+              try {
+                const decoded = decodeURIComponent(segment);
+                return encodeURIComponent(decoded);
+              } catch {
+                // If decoding fails, just encode as-is
+                return encodeURIComponent(segment);
+              }
+            }).join("/");
+            const resolvedUrl = base + encodedPath;
+            console.log("🔵 [resolvePhotoUrl] Manually encoded URL:", { original: photo, resolved: resolvedUrl });
+            return resolvedUrl;
+          }
+        }
+      } catch (encodeError) {
+        console.error("🔴 [resolvePhotoUrl] Failed to encode URL:", { photo, error: encodeError });
+      }
+      // Last resort: return as-is (browser may handle it, or we'll see error in console)
+      console.warn("🔴 [resolvePhotoUrl] Returning URL as-is (last resort):", photo);
+      return photo;
+    }
+
+    // Relative URL - convert to absolute
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:4000";
+    const path = photo.startsWith("/") ? photo : `/${photo}`;
+    // Split path into segments and encode each segment separately
+    const pathSegments = path.split("/").map(segment => {
+      if (!segment) return segment;
+      return encodeURIComponent(segment);
+    });
+    const encodedPath = pathSegments.join("/");
+    const resolvedUrl = `${apiBaseUrl}${encodedPath}`;
+    console.log("🔵 [resolvePhotoUrl] Resolved relative URL:", { original: photo, resolved: resolvedUrl });
+    return resolvedUrl;
+  } catch (error) {
+    console.error("🔴 [resolvePhotoUrl] Error processing photo", { photo, error });
+    return "";
   }
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:4000";
-  // Encode the path part of the URL to handle spaces and special characters
-  const path = photo.startsWith("/") ? photo : `/${photo}`;
-  // Split path into segments and encode each segment separately
-  // This ensures that spaces and special characters in filenames are properly encoded
-  const pathSegments = path.split("/").map(segment => {
-    if (!segment) return segment;
-    // Encode each segment but preserve slashes
-    return encodeURIComponent(segment);
-  });
-  const encodedPath = pathSegments.join("/");
-  return `${apiBaseUrl}${encodedPath}`;
 }
 
 type TaskSubmission = {
@@ -56,7 +119,7 @@ type TaskSubmission = {
 };
 
 type LevelWithIteration = Level & { iterationId?: string };
-type AdminTabId = "levels" | "submissions" | "metrics" | "analytics";
+type AdminTabId = "levels" | "submissions" | "metrics" | "analytics" | "secret-santa";
 
 export default function AdminPage() {
   const [levels, setLevels] = useState<LevelWithIteration[]>([]);
@@ -64,6 +127,7 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<TaskSubmission[]>([]);
   const [iterations, setIterations] = useState<Iteration[]>([]);
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
+  const [secretSantaState, setSecretSantaState] = useState<SecretSantaAdminState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIteration, setActiveIteration] = useState<Iteration | null>(null);
   const [collapsedWeeks, setCollapsedWeeks] = useState<Set<string>>(new Set());
@@ -71,6 +135,7 @@ export default function AdminPage() {
   const [collapsedSubmissionGroups, setCollapsedSubmissionGroups] = useState<Set<string>>(new Set());
   const [submissionPage, setSubmissionPage] = useState(1);
   const [activeTab, setActiveTab] = useState<AdminTabId>("levels");
+  const [isDrawingAllSecretSanta, setIsDrawingAllSecretSanta] = useState(false);
   const SUBMISSIONS_PER_PAGE = 10;
 
   // Level form state
@@ -111,9 +176,40 @@ export default function AdminPage() {
   const loadSubmissions = useCallback(async () => {
     try {
       const submissionsResponse = await api.getAdminSubmissions();
+      console.log("🔵 [ADMIN] Loaded submissions:", {
+        count: submissionsResponse.length,
+        submissionsWithPhotos: submissionsResponse.filter(s => s.payload?.photos).length,
+      });
+
+      // Log submissions with photos for debugging
+      submissionsResponse.forEach((submission) => {
+        if (submission.payload?.photos) {
+          console.log("🔵 [ADMIN] Submission with photos:", {
+            id: submission.id,
+            taskId: submission.taskId,
+            photos: submission.payload.photos,
+            photosType: typeof submission.payload.photos,
+            isArray: Array.isArray(submission.payload.photos),
+          });
+        }
+      });
+
       setSubmissions(submissionsResponse);
-    } catch {
+    } catch (error) {
+      console.error("🔴 [ADMIN] Error loading submissions:", error);
       setSubmissions([]);
+    }
+  }, []);
+
+  const loadSecretSanta = useCallback(async () => {
+    try {
+      const state = await api.getSecretSantaAdminState();
+      setSecretSantaState(state);
+    } catch (error) {
+      toast.error("Не удалось загрузить данные Тайного Санты", {
+        description: error instanceof Error ? error.message : "Ошибка загрузки",
+      });
+      setSecretSantaState(null);
     }
   }, []);
 
@@ -157,6 +253,11 @@ export default function AdminPage() {
 
         // Load submissions
         await loadSubmissions();
+
+        // Load secret santa if tab is active
+        if (activeTab === "secret-santa") {
+          await loadSecretSanta();
+        }
       } catch (error) {
         if (!isMounted) return;
         toast.error("Не удалось загрузить панель администратора", {
@@ -174,7 +275,7 @@ export default function AdminPage() {
     return () => {
       isMounted = false;
     };
-  }, [loadSubmissions]);
+  }, [loadSubmissions, activeTab, loadSecretSanta]);
 
   // Reload submissions when page becomes visible (user returns to tab)
   useEffect(() => {
@@ -374,6 +475,15 @@ export default function AdminPage() {
   };
 
   const handleModerateSubmission = (submission: TaskSubmission) => {
+    console.log("🔵 [ADMIN] Opening submission for moderation:", {
+      id: submission.id,
+      taskId: submission.taskId,
+      payload: submission.payload,
+      photos: submission.payload.photos,
+      photosType: typeof submission.payload.photos,
+      isArray: Array.isArray(submission.payload.photos),
+      payloadKeys: Object.keys(submission.payload),
+    });
     setSelectedSubmission(submission);
     setSubmissionForm({
       status: (submission.status as "accepted" | "rejected" | "pending" | "revision") || "pending",
@@ -407,6 +517,13 @@ export default function AdminPage() {
       setActiveTab("levels");
     }
   }, [metrics, activeTab]);
+
+  // Load secret santa when tab is activated
+  useEffect(() => {
+    if (activeTab === "secret-santa") {
+      void loadSecretSanta();
+    }
+  }, [activeTab, loadSecretSanta]);
 
   const pendingSubmissionCount = useMemo(
     () => submissions.filter((submission) => submission.status === "pending").length,
@@ -442,6 +559,12 @@ export default function AdminPage() {
           label: "Аналитика",
           description: "Сводка активности за период",
         },
+        {
+          id: "secret-santa" as const,
+          label: "Тайный Санта",
+          description: secretSantaState ? `Участников: ${secretSantaState.stats.total}` : "Управление активностью",
+          badge: secretSantaState?.stats.total,
+        },
       ] satisfies Array<{
         id: AdminTabId;
         label: string;
@@ -449,7 +572,7 @@ export default function AdminPage() {
         badge?: number;
         disabled?: boolean;
       }>,
-    [levels.length, submissions.length, pendingSubmissionCount, metrics]
+    [levels.length, submissions.length, pendingSubmissionCount, metrics, secretSantaState]
   );
 
   if (isLoading) {
@@ -472,7 +595,7 @@ export default function AdminPage() {
       </div>
 
       <ConsoleFrame className="space-y-6">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {adminTabs.map((tab) => (
             <button
               key={tab.id}
@@ -480,24 +603,24 @@ export default function AdminPage() {
               disabled={tab.disabled}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "rounded-md border border-evm-steel/30 bg-black/40 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-evm-accent/50",
+                "rounded-md border border-evm-steel/30 bg-black/40 p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-evm-accent/50",
                 tab.disabled && "cursor-not-allowed opacity-40",
                 activeTab === tab.id
                   ? "border-evm-accent/60 bg-evm-accent/10 shadow-[0_0_20px_rgba(184,71,63,0.2)]"
                   : "hover:border-evm-accent/40 hover:bg-evm-accent/5"
               )}
             >
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em]">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] leading-tight">
                   {tab.label}
                 </p>
                 {typeof tab.badge === "number" ? (
-                  <span className="rounded-md border border-evm-steel/40 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-evm-muted">
+                  <span className="rounded-md border border-evm-steel/40 px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-evm-muted shrink-0">
                     {tab.badge}
                   </span>
                 ) : null}
               </div>
-              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-evm-muted">
+              <p className="mt-1 text-[0.65rem] uppercase tracking-[0.16em] text-evm-muted leading-tight line-clamp-2">
                 {tab.description}
               </p>
             </button>
@@ -927,31 +1050,120 @@ export default function AdminPage() {
                                                   <p className="text-xs text-evm-muted">Ответ:</p>
                                                   <div className="mt-1 space-y-2">
                                                     {/* Display photos if present */}
-                                                    {submission.payload.photos &&
-                                                      Array.isArray(submission.payload.photos) &&
-                                                      submission.payload.photos.length > 0 && (
-                                                        <div className="space-y-1">
-                                                          <p className="text-xs font-semibold text-evm-muted">
-                                                            Фото ({submission.payload.photos.length}):
-                                                          </p>
-                                                          <div className="grid grid-cols-2 gap-1">
-                                                            {(submission.payload.photos as string[])
-                                                              .slice(0, 2)
-                                                              .map((photo: string, index: number) => (
-                                                                <img
-                                                                  key={index}
-                                                                  src={resolvePhotoUrl(photo)}
-                                                                  alt={`Photo ${index + 1}`}
-                                                                  className="h-16 w-full rounded object-cover"
-                                                                  onError={(e) => {
-                                                                    console.error("Failed to load image:", resolvePhotoUrl(photo));
-                                                                    (e.target as HTMLImageElement).style.display = "none";
-                                                                  }}
-                                                                />
-                                                              ))}
+                                                    {(() => {
+                                                      try {
+                                                        const photos = submission.payload.photos;
+                                                        if (!photos) return null;
+
+                                                        // Handle both array and non-array cases
+                                                        const photosArray = Array.isArray(photos)
+                                                          ? photos
+                                                          : typeof photos === "string"
+                                                            ? [photos]
+                                                            : [];
+
+                                                        if (photosArray.length === 0) return null;
+
+                                                        // Filter out invalid photos
+                                                        const validPhotos = photosArray
+                                                          .filter((photo): photo is string => {
+                                                            if (typeof photo !== "string" || !photo.trim()) {
+                                                              console.warn("Invalid photo in submission:", { photo, submissionId: submission.id });
+                                                              return false;
+                                                            }
+                                                            return true;
+                                                          })
+                                                          .slice(0, 2); // Show max 2 photos
+
+                                                        if (validPhotos.length === 0) return null;
+
+                                                        return (
+                                                          <div className="space-y-1">
+                                                            <p className="text-xs font-semibold text-evm-muted">
+                                                              Фото ({photosArray.length}):
+                                                            </p>
+                                                            <div className="grid grid-cols-2 gap-1">
+                                                              {validPhotos.map((photo: string, index: number) => {
+                                                                const photoUrl = resolvePhotoUrl(photo);
+                                                                if (!photoUrl) {
+                                                                  console.warn("🔴 [ADMIN LIST] Empty photo URL after resolution:", { photo, submissionId: submission.id });
+                                                                  return null;
+                                                                }
+                                                                console.log("🔵 [ADMIN LIST] Rendering photo:", {
+                                                                  index,
+                                                                  photo,
+                                                                  photoUrl,
+                                                                  submissionId: submission.id,
+                                                                });
+                                                                return (
+                                                                  <div key={`${submission.id}-photo-${index}`} className="relative">
+                                                                    <img
+                                                                      src={photoUrl}
+                                                                      alt={`Photo ${index + 1}`}
+                                                                      className="h-16 w-full rounded object-cover bg-black/20"
+                                                                      loading="lazy"
+                                                                      onError={(e) => {
+                                                                        const img = e.target as HTMLImageElement;
+                                                                        console.error("🔴 [ADMIN LIST] Failed to load image:", {
+                                                                          photoUrl,
+                                                                          photo,
+                                                                          submissionId: submission.id,
+                                                                          imgSrc: img.src,
+                                                                          imgCurrentSrc: img.currentSrc,
+                                                                          naturalWidth: img.naturalWidth,
+                                                                          naturalHeight: img.naturalHeight,
+                                                                          complete: img.complete,
+                                                                        });
+                                                                        // Don't hide the image - show error indicator instead
+                                                                        img.style.opacity = "0.3";
+                                                                        // Show error message
+                                                                        const container = img.parentElement;
+                                                                        if (container) {
+                                                                          const existingError = container.querySelector(".image-error-indicator");
+                                                                          if (existingError) {
+                                                                            existingError.remove();
+                                                                          }
+                                                                          const errorDiv = document.createElement("div");
+                                                                          errorDiv.className = "image-error-indicator absolute inset-0 flex items-center justify-center bg-red-500/20 rounded text-[8px] text-red-500";
+                                                                          errorDiv.textContent = "Ошибка";
+                                                                          container.appendChild(errorDiv);
+                                                                        }
+                                                                      }}
+                                                                      onLoad={(e) => {
+                                                                        const img = e.target as HTMLImageElement;
+                                                                        console.log("🟢 [ADMIN LIST] Image loaded successfully:", {
+                                                                          photoUrl,
+                                                                          photo,
+                                                                          submissionId: submission.id,
+                                                                          imgSrc: img.src,
+                                                                          naturalWidth: img.naturalWidth,
+                                                                          naturalHeight: img.naturalHeight,
+                                                                        });
+                                                                        // Remove any error indicators on successful load
+                                                                        const container = img.parentElement;
+                                                                        if (container) {
+                                                                          const errorIndicator = container.querySelector(".image-error-indicator");
+                                                                          if (errorIndicator) {
+                                                                            errorIndicator.remove();
+                                                                          }
+                                                                        }
+                                                                      }}
+                                                                    />
+                                                                  </div>
+                                                                );
+                                                              })}
+                                                            </div>
                                                           </div>
-                                                        </div>
-                                                      )}
+                                                        );
+                                                      } catch (error) {
+                                                        console.error("Error rendering photos:", { error, submissionId: submission.id, payload: submission.payload });
+                                                        return (
+                                                          <p className="text-xs text-red-500">
+                                                            Ошибка отображения фотографий
+                                                          </p>
+                                                        );
+                                                      }
+                                                    })()}
 
                                                     {/* Display survey if present */}
                                                     {submission.payload.survey &&
@@ -1084,6 +1296,201 @@ export default function AdminPage() {
         )}
 
         {activeTab === "analytics" ? <AnalyticsPanel /> : null}
+
+        {activeTab === "secret-santa" && (
+          <Card>
+            <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <CardTitle>Тайный Санта</CardTitle>
+                <p className="text-xs uppercase tracking-[0.22em] text-evm-muted">
+                  Управление активностью и участниками
+                </p>
+              </div>
+              {secretSantaState && secretSantaState.stats.total >= 2 && (
+                <Button
+                  onClick={async () => {
+                    const waitingCount = secretSantaState.participants.filter(
+                      (p) => p.status === "waiting"
+                    ).length;
+                    if (waitingCount < 2) {
+                      toast.error("Нужно минимум 2 участника для жеребьевки");
+                      return;
+                    }
+
+                    if (
+                      !confirm(
+                        `Запустить жеребьевку для всех ${waitingCount} участников? Это действие нельзя отменить.`
+                      )
+                    ) {
+                      return;
+                    }
+
+                    try {
+                      setIsDrawingAllSecretSanta(true);
+                      await api.drawAllSecretSanta();
+                      // Reload admin state after drawing
+                      const adminState = await api.getSecretSantaAdminState();
+                      setSecretSantaState(adminState);
+                      toast.success("Жеребьевка завершена!", {
+                        description: `Все ${waitingCount} участников получили своих получателей.`,
+                      });
+                    } catch (error) {
+                      toast.error("Не удалось запустить жеребьевку", {
+                        description:
+                          error instanceof Error ? error.message : "Ошибка жеребьевки",
+                      });
+                    } finally {
+                      setIsDrawingAllSecretSanta(false);
+                    }
+                  }}
+                  disabled={isDrawingAllSecretSanta}
+                  variant="outline"
+                >
+                  {isDrawingAllSecretSanta
+                    ? "Жеребьевка..."
+                    : "Запустить жеребьевку для всех"}
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {secretSantaState ? (
+                <>
+                  {/* Statistics */}
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-md border border-evm-steel/40 bg-black/40 p-4">
+                      <p className="text-2xl font-semibold">{secretSantaState.stats.total}</p>
+                      <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
+                        Всего участников
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-evm-steel/40 bg-black/40 p-4">
+                      <p className="text-2xl font-semibold text-evm-matrix">
+                        {secretSantaState.stats.matched}
+                      </p>
+                      <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
+                        Вытянули получателя
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-evm-steel/40 bg-black/40 p-4">
+                      <p className="text-2xl font-semibold text-evm-accent">
+                        {secretSantaState.stats.gifted}
+                      </p>
+                      <p className="text-xs uppercase tracking-[0.18em] text-evm-muted">
+                        Подарков отправлено
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Participants List */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold uppercase tracking-[0.2em]">
+                        Участники ({secretSantaState.participants.length})
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void loadSecretSanta()}
+                      >
+                        Обновить
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {secretSantaState.participants
+                        .sort((a, b) => {
+                          // Sort by status: waiting first, then matched, then gifted
+                          const statusOrder = { waiting: 0, matched: 1, gifted: 2 };
+                          const statusDiff =
+                            statusOrder[a.status] - statusOrder[b.status];
+                          if (statusDiff !== 0) return statusDiff;
+                          // Then by name
+                          return a.name.localeCompare(b.name, "ru");
+                        })
+                        .map((participant) => {
+                          const statusMeta = {
+                            waiting: {
+                              label: "В ожидании",
+                              color: "border-yellow-500/50 bg-yellow-500/10",
+                            },
+                            matched: {
+                              label: "Вытянул получателя",
+                              color: "border-blue-500/50 bg-blue-500/10",
+                            },
+                            gifted: {
+                              label: "Подарок отправлен",
+                              color: "border-green-500/50 bg-green-500/10",
+                            },
+                          }[participant.status];
+
+                          return (
+                            <div
+                              key={participant.id}
+                              className={`rounded-md border ${statusMeta.color} p-4`}
+                            >
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-sm font-semibold uppercase tracking-[0.18em]">
+                                    {participant.name}
+                                  </p>
+                                  <span className="rounded-md border border-evm-steel/40 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-evm-muted">
+                                    {statusMeta.label}
+                                  </span>
+                                </div>
+                                <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                                  {participant.department}
+                                </p>
+                                {participant.matchedRecipient && (
+                                  <div className="rounded border border-evm-accent/30 bg-evm-accent/5 p-2">
+                                    <p className="text-[0.65rem] uppercase tracking-[0.16em] text-evm-muted mb-1">
+                                      Дарит подарок:
+                                    </p>
+                                    <p className="text-xs font-semibold text-evm-accent">
+                                      {participant.matchedRecipient.name}
+                                    </p>
+                                    <p className="text-[0.65rem] text-evm-muted mt-1">
+                                      {participant.matchedRecipient.department}
+                                    </p>
+                                  </div>
+                                )}
+                                <div className="mt-2 rounded border border-evm-steel/20 bg-black/20 p-2">
+                                  <p className="text-xs uppercase tracking-[0.18em] text-evm-muted mb-1">
+                                    Пожелания:
+                                  </p>
+                                  <p className="text-xs text-foreground/90 leading-relaxed">
+                                    {participant.wishlist}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  {/* Matching Information */}
+                  {secretSantaState.stats.matched > 0 && (
+                    <div className="rounded-md border border-evm-accent/30 bg-evm-accent/5 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-evm-muted mb-2">
+                        Информация о жеребьевке
+                      </p>
+                      <p className="text-sm text-foreground/90">
+                        {secretSantaState.stats.matched} из {secretSantaState.stats.total}{" "}
+                        участников уже вытянули своих получателей.{" "}
+                        {secretSantaState.stats.gifted > 0 &&
+                          `${secretSantaState.stats.gifted} участников уже отметили подарок как отправленный.`}
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
+                  Загрузка данных Тайного Санты...
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
       </ConsoleFrame>
 
@@ -1354,31 +1761,197 @@ export default function AdminPage() {
                 <p className="mt-2 text-xs text-evm-muted">Ответ:</p>
                 <div className="mt-1 space-y-2">
                   {/* Display photos if present */}
-                  {selectedSubmission.payload.photos &&
-                    Array.isArray(selectedSubmission.payload.photos) &&
-                    selectedSubmission.payload.photos.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-evm-muted">
-                          Загруженные фото:
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {(selectedSubmission.payload.photos as string[]).map(
-                            (photo: string, index: number) => (
-                              <img
-                                key={index}
-                                src={resolvePhotoUrl(photo)}
-                                alt={`Photo ${index + 1}`}
-                                className="h-32 w-full rounded-md object-cover"
-                                onError={(e) => {
-                                  console.error("Failed to load image:", resolvePhotoUrl(photo));
-                                  (e.target as HTMLImageElement).style.display = "none";
-                                }}
-                              />
-                            ),
-                          )}
+                  {(() => {
+                    try {
+                      console.log("🔵 [ADMIN DETAIL] Rendering photos for submission:", {
+                        submissionId: selectedSubmission.id,
+                        payload: selectedSubmission.payload,
+                        payloadStringified: JSON.stringify(selectedSubmission.payload),
+                        photos: selectedSubmission.payload.photos,
+                        photosType: typeof selectedSubmission.payload.photos,
+                        isArray: Array.isArray(selectedSubmission.payload.photos),
+                        payloadKeys: Object.keys(selectedSubmission.payload || {}),
+                      });
+
+                      const photos = selectedSubmission.payload.photos;
+                      if (!photos) {
+                        console.log("🔵 [ADMIN DETAIL] No photos in payload");
+                        return null;
+                      }
+
+                      // Handle both array and non-array cases
+                      const photosArray = Array.isArray(photos)
+                        ? photos
+                        : typeof photos === "string"
+                          ? [photos]
+                          : [];
+
+                      console.log("🔵 [ADMIN DETAIL] Photos array:", {
+                        length: photosArray.length,
+                        photos: photosArray,
+                      });
+
+                      if (photosArray.length === 0) {
+                        console.log("🔵 [ADMIN DETAIL] Photos array is empty");
+                        return null;
+                      }
+
+                      // Filter out invalid photos
+                      const validPhotos = photosArray
+                        .filter((photo): photo is string => {
+                          if (typeof photo !== "string" || !photo.trim()) {
+                            console.warn("🔴 [ADMIN DETAIL] Invalid photo:", { photo, submissionId: selectedSubmission.id });
+                            return false;
+                          }
+                          return true;
+                        });
+
+                      console.log("🔵 [ADMIN DETAIL] Valid photos:", {
+                        count: validPhotos.length,
+                        photos: validPhotos,
+                      });
+
+                      if (validPhotos.length === 0) {
+                        console.log("🔴 [ADMIN DETAIL] No valid photos after filtering");
+                        return (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-evm-muted">
+                              Загруженные фото:
+                            </p>
+                            <p className="text-xs text-red-500">
+                              Фотографии не найдены или имеют неверный формат
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold text-evm-muted">
+                            Загруженные фото ({validPhotos.length}):
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {validPhotos.map((photo: string, index: number) => {
+                              const photoUrl = resolvePhotoUrl(photo);
+                              console.log("🔵 [ADMIN DETAIL] Rendering photo:", {
+                                index,
+                                photo,
+                                photoUrl,
+                                submissionId: selectedSubmission.id,
+                              });
+
+                              if (!photoUrl) {
+                                console.warn("🔴 [ADMIN DETAIL] Empty photo URL after resolution:", { photo, submissionId: selectedSubmission.id });
+                                return (
+                                  <div key={`${selectedSubmission.id}-photo-${index}`} className="h-32 w-full rounded-md border border-red-500/50 bg-red-500/10 flex items-center justify-center">
+                                    <p className="text-xs text-red-500">Ошибка загрузки</p>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div key={`${selectedSubmission.id}-photo-${index}`} className="relative group">
+                                  <div className="h-32 w-full rounded-md border border-evm-steel/20 bg-black/20 overflow-hidden relative">
+                                    {/* Test if image loads */}
+                                    <img
+                                      src={photoUrl}
+                                      alt={`Photo ${index + 1}`}
+                                      className="h-full w-full object-cover"
+                                      loading="eager"
+                                      onError={(e) => {
+                                        const img = e.target as HTMLImageElement;
+                                        console.error("🔴 [ADMIN DETAIL] Failed to load image:", {
+                                          photoUrl,
+                                          photo,
+                                          originalPhoto: photo,
+                                          submissionId: selectedSubmission.id,
+                                          imgSrc: img.src,
+                                          imgCurrentSrc: img.currentSrc,
+                                          naturalWidth: img.naturalWidth,
+                                          naturalHeight: img.naturalHeight,
+                                          complete: img.complete,
+                                        });
+                                        // Don't hide the image - show error overlay instead
+                                        img.style.opacity = "0.3";
+                                        // Show error message
+                                        const container = img.parentElement;
+                                        if (container) {
+                                          // Remove existing error div if any
+                                          const existingError = container.querySelector(".image-error-overlay");
+                                          if (existingError) {
+                                            existingError.remove();
+                                          }
+                                          const errorDiv = document.createElement("div");
+                                          errorDiv.className = "image-error-overlay absolute inset-0 flex flex-col items-center justify-center p-2 bg-red-500/20 border border-red-500/50 rounded-md z-10";
+                                          errorDiv.innerHTML = `
+                                            <p class="text-xs text-red-500 font-semibold mb-1">Ошибка загрузки</p>
+                                            <a href="${photoUrl}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-blue-400 hover:underline break-all text-center max-w-full" title="${photoUrl}">
+                                              Открыть в новой вкладке
+                                            </a>
+                                          `;
+                                          container.appendChild(errorDiv);
+                                        }
+                                      }}
+                                      onLoad={(e) => {
+                                        const img = e.target as HTMLImageElement;
+                                        console.log("🟢 [ADMIN DETAIL] Image loaded successfully:", {
+                                          photoUrl,
+                                          photo,
+                                          imgSrc: img.src,
+                                          imgCurrentSrc: img.currentSrc,
+                                          naturalWidth: img.naturalWidth,
+                                          naturalHeight: img.naturalHeight,
+                                          complete: img.complete,
+                                        });
+                                        // Remove any error overlays on successful load
+                                        const container = img.parentElement;
+                                        if (container) {
+                                          const errorOverlay = container.querySelector(".image-error-overlay");
+                                          if (errorOverlay) {
+                                            errorOverlay.remove();
+                                          }
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                  {/* Show URL on hover for debugging */}
+                                  <div className="absolute inset-0 bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex items-center justify-center p-2 pointer-events-none z-20">
+                                    <p className="text-[10px] text-white break-all text-center max-w-full">{photoUrl}</p>
+                                  </div>
+                                  {/* Open button */}
+                                  <a
+                                    href={photoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="absolute bottom-1 right-1 rounded bg-black/70 px-2 py-1 text-xs text-white hover:bg-black/90 z-30"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Открыть
+                                  </a>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    } catch (error) {
+                      console.error("🔴 [ADMIN DETAIL] Error rendering photos:", {
+                        error,
+                        submissionId: selectedSubmission.id,
+                        payload: selectedSubmission.payload
+                      });
+                      return (
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold text-evm-muted">
+                            Загруженные фото:
+                          </p>
+                          <p className="text-xs text-red-500">
+                            Ошибка отображения фотографий: {error instanceof Error ? error.message : "Неизвестная ошибка"}
+                          </p>
+                        </div>
+                      );
+                    }
+                  })()}
 
                   {/* Display survey answers if present */}
                   {selectedSubmission.payload.survey &&

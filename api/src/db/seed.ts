@@ -71,7 +71,7 @@ function seedCore() {
     id: "t1",
     name: "Контур ЭМО-3",
     slogan: "Отладим чувства Матрицы.",
-    progress: 62,
+    progress: 0, // Прогресс команды рассчитывается из teamProgress
   }).run();
 
   db.insert(users).values([
@@ -336,66 +336,13 @@ function seedCore() {
     },
   ]).run();
 
-  db.insert(teamProgress).values({
-    teamId: "t1",
-    progress: 62,
-    totalPoints: 70,
-    completedTasks: ["taskA"],
-    unlockedKeys: ["alpha", "beta"],
-    completedWeeks: [1, 2],
-    weeklyStats: [
-      { week: 1, points: 30, tasksCompleted: 6 },
-      { week: 2, points: 40, tasksCompleted: 7 },
-    ],
-  }).run();
+  // teamProgress и userWeekProgress не заполняются здесь,
+  // они автоматически создаются и обновляются при принятии задач
+  // через функцию updateTaskSubmission в admin.ts
 
-  db.insert(userWeekProgress).values([
-    {
-      id: "uwp-u1-w3",
-      userId: "u1",
-      iterationId,
-      week: 3,
-      completedTasks: ["taskA"],
-      pointsEarned: 50,
-      isCompleted: false,
-    },
-    {
-      id: "uwp-u2-w2",
-      userId: "u2",
-      iterationId,
-      week: 2,
-      completedTasks: Array.from({ length: 10 }, (_, idx) => `task-${idx + 1}`),
-      pointsEarned: 200,
-      isCompleted: true,
-      finishedAt: new Date("2025-11-03T14:00:00Z"),
-      keyId: "beta",
-      title: "Куратор Эмо-Контур-Альфа",
-    },
-  ]).run();
-
-  db.insert(adminMetrics).values({
-    id: 1,
-    dau: [
-      { label: "Пн", value: 210 },
-      { label: "Вт", value: 240 },
-      { label: "Ср", value: 260 },
-      { label: "Чт", value: 280 },
-      { label: "Пт", value: 310 },
-    ],
-    wau: [
-      { label: "Неделя 41", value: 860 },
-      { label: "Неделя 42", value: 910 },
-      { label: "Неделя 43", value: 980 },
-      { label: "Неделя 44", value: 1020 },
-      { label: "Неделя 45", value: 1105 },
-    ],
-    funnel: [
-      { step: "Пробуждение", value: 1800 },
-      { step: "Регистрация", value: 1500 },
-      { step: "Активация EVM", value: 1120 },
-      { step: "Получили билет", value: 760 },
-    ],
-  }).run();
+  // adminMetrics не заполняются здесь,
+  // они должны рассчитываться из реальных данных пользователей и активности
+  // через функцию getAdminMetrics в admin.ts
 
   db.insert(validatorCodes).values([
     {

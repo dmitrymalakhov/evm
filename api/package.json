@@ -10,7 +10,8 @@
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:push": "drizzle-kit push",
     "drizzle:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx src/db/seed.ts"
+    "db:seed": "tsx src/db/seed.ts",
+    "recalculate-points": "tsx src/scripts/recalculate-points.ts"
   },
   "dependencies": {
     "@types/pdfkit": "^0.17.3",

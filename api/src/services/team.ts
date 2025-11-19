@@ -7,6 +7,8 @@ import {
   ideas,
   teamProgress,
   teams,
+  users,
+  userWeekProgress,
 } from "../db/schema.js";
 import { logUserAction } from "./analytics.js";
 
@@ -233,10 +235,124 @@ export function removeIdeaVote(teamId: string, ideaId: string, userId: string) {
 }
 
 export function getTeamProgress(teamId: string) {
-  return db
+  // Получаем существующий прогресс команды
+  const existingProgress = db
     .select()
     .from(teamProgress)
     .where(eq(teamProgress.teamId, teamId))
     .get();
+
+  // Получаем всех участников команды
+  const teamMembers = db
+    .select({
+      userId: users.id,
+    })
+    .from(users)
+    .where(eq(users.teamId, teamId))
+    .all();
+
+  // Пересчитываем командные баллы из персональных баллов всех участников
+  let totalTeamPoints = 0;
+  const allCompletedTasks = new Set<string>();
+  // Для статистики по неделям: Map<week, { points: number, tasks: Set<string> }>
+  const weeklyStatsMap = new Map<number, { points: number; tasks: Set<string> }>();
+
+  for (const member of teamMembers) {
+    // Получаем персональные баллы участника из всех недель
+    const userProgress = db
+      .select({
+        pointsEarned: userWeekProgress.pointsEarned,
+        completedTasks: userWeekProgress.completedTasks,
+        week: userWeekProgress.week,
+      })
+      .from(userWeekProgress)
+      .where(eq(userWeekProgress.userId, member.userId))
+      .all();
+
+    // Суммируем персональные баллы участника
+    for (const progress of userProgress) {
+      totalTeamPoints += progress.pointsEarned || 0;
+      
+      // Собираем все выполненные задачи (уникальные по всей команде)
+      if (Array.isArray(progress.completedTasks)) {
+        progress.completedTasks.forEach((taskId: string) => {
+          allCompletedTasks.add(taskId);
+        });
+      }
+
+      // Собираем статистику по неделям (уникальные задачи по неделям)
+      const week = progress.week;
+      const existingStat = weeklyStatsMap.get(week);
+      if (existingStat) {
+        existingStat.points += progress.pointsEarned || 0;
+        if (Array.isArray(progress.completedTasks)) {
+          progress.completedTasks.forEach((taskId: string) => {
+            existingStat.tasks.add(taskId);
+          });
+        }
+      } else {
+        const tasksSet = new Set<string>();
+        if (Array.isArray(progress.completedTasks)) {
+          progress.completedTasks.forEach((taskId: string) => {
+            tasksSet.add(taskId);
+          });
+        }
+        weeklyStatsMap.set(week, {
+          points: progress.pointsEarned || 0,
+          tasks: tasksSet,
+        });
+      }
+    }
+  }
+
+  // Преобразуем Map в массив для weeklyStats
+  const weeklyStats = Array.from(weeklyStatsMap.entries())
+    .map(([week, stats]) => ({
+      week,
+      points: stats.points,
+      tasksCompleted: stats.tasks.size,
+    }))
+    .sort((a, b) => a.week - b.week);
+
+  // Обновляем или создаем запись teamProgress с пересчитанными данными
+  if (existingProgress) {
+    db.update(teamProgress)
+      .set({
+        totalPoints: totalTeamPoints,
+        completedTasks: Array.from(allCompletedTasks),
+        weeklyStats: weeklyStats,
+        // Сохраняем другие поля без изменений
+        progress: existingProgress.progress,
+        unlockedKeys: existingProgress.unlockedKeys,
+        completedWeeks: existingProgress.completedWeeks,
+      })
+      .where(eq(teamProgress.teamId, teamId))
+      .run();
+
+    // Возвращаем обновленный прогресс
+    return {
+      ...existingProgress,
+      totalPoints: totalTeamPoints,
+      completedTasks: Array.from(allCompletedTasks),
+      weeklyStats: weeklyStats,
+    };
+  } else {
+    // Создаем новую запись, если её нет
+    const newProgress = {
+      teamId,
+      totalPoints: totalTeamPoints,
+      progress: 0,
+      completedTasks: Array.from(allCompletedTasks),
+      unlockedKeys: [],
+      completedWeeks: [],
+      weeklyStats: weeklyStats,
+    };
+
+    db.insert(teamProgress)
+      .values(newProgress)
+      .run();
+
+    return newProgress;
+  }
 }
 
