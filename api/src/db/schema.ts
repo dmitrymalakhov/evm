@@ -30,6 +30,7 @@ export const users = sqliteTable(
         avatarUrl: text("avatar_url"),
         tabNumber: text("tab_number").notNull(),
         otpCode: text("otp_code").notNull(),
+        status: text("status").default("active"),
         createdAt: integer("created_at", { mode: "timestamp" })
             .$defaultFn(() => new Date())
             .notNull(),

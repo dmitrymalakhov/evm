@@ -37,7 +37,7 @@ const STATUS_META: Record<
   },
 };
 
-const EVENT_DATE = new Date("2024-12-18T00:00:00");
+const EVENT_DATE = new Date("2025-12-18T00:00:00");
 
 const SECRET_SANTA_PHASES = [
   {
@@ -311,7 +311,7 @@ export default function SecretSantaPage() {
             <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
               До мероприятия
             </p>
-            <Timer target={EVENT_DATE.toISOString()} label="18 декабря 2024" />
+            <Timer target={EVENT_DATE.toISOString()} label="18 декабря 2025" />
           </div>
         </ConsoleFrame>
 

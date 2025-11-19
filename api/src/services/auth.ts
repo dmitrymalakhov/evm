@@ -26,6 +26,12 @@ export function loginWithOtp(payload: LoginPayload) {
     throw new Error("Пользователь не найден или код неверен.");
   }
 
+  // Проверяем, что пользователь активен (не предзаполненный)
+  // Если поле status отсутствует (старая БД), считаем пользователя активным
+  if (user.status && user.status === "pending") {
+    throw new Error("Аккаунт еще не активирован. Обратитесь к администратору.");
+  }
+
   const accessToken = crypto.randomUUID();
   const refreshToken = crypto.randomUUID();
   const expiresIn = 60 * 60; // seconds

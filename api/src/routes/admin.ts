@@ -12,6 +12,13 @@ import {
   recalculateAllUsersPoints,
 } from "../services/admin";
 import {
+  listPreCreatedUsers,
+  createPreCreatedUser,
+  updatePreCreatedUser,
+  deletePreCreatedUser,
+  activatePreCreatedUser,
+} from "../services/pre-created-users";
+import {
   addTask,
   deleteTask,
   getIterationById,
@@ -586,6 +593,200 @@ router.post("/recalculate-all-users-points", (request, response) => {
         error instanceof Error
           ? error.message
           : "Не удалось пересчитать баллы",
+    });
+  }
+});
+
+// Эндпоинты для управления предзаполненными пользователями
+
+const preCreatedUserSchema = z.object({
+  email: z.string().email().optional(),
+  name: z.string().optional(),
+  role: z.enum(["user", "mod", "admin"]).optional(),
+  teamId: z.string().optional(),
+  title: z.string().optional(),
+});
+
+router.get("/users/pre-created", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const preCreatedUsers = listPreCreatedUsers();
+    return response.json(
+      preCreatedUsers.map((u) => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        teamId: u.teamId,
+        title: u.title,
+        tabNumber: u.tabNumber,
+        otpCode: u.otpCode,
+        status: u.status,
+        createdAt: u.createdAt.toISOString(),
+        updatedAt: u.updatedAt.toISOString(),
+      })),
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось загрузить предзаполненных пользователей",
+    });
+  }
+});
+
+router.post("/users/pre-created", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const payload = preCreatedUserSchema.parse(request.body);
+    const created = createPreCreatedUser(payload);
+
+    return response.status(201).json({
+      id: created.id,
+      email: created.email,
+      name: created.name,
+      role: created.role,
+      teamId: created.teamId,
+      title: created.title,
+      tabNumber: created.tabNumber,
+      otpCode: created.otpCode,
+      status: created.status,
+      createdAt: created.createdAt.toISOString(),
+      updatedAt: created.updatedAt.toISOString(),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return response.status(422).json({ message: error.issues[0].message });
+    }
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось создать предзаполненного пользователя",
+    });
+  }
+});
+
+router.put("/users/pre-created/:userId", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const payload = preCreatedUserSchema.parse(request.body);
+    const updated = updatePreCreatedUser(request.params.userId, payload);
+
+    if (!updated) {
+      return response.status(404).json({ message: "Пользователь не найден" });
+    }
+
+    return response.json({
+      id: updated.id,
+      email: updated.email,
+      name: updated.name,
+      role: updated.role,
+      teamId: updated.teamId,
+      title: updated.title,
+      tabNumber: updated.tabNumber,
+      otpCode: updated.otpCode,
+      status: updated.status,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return response.status(422).json({ message: error.issues[0].message });
+    }
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось обновить предзаполненного пользователя",
+    });
+  }
+});
+
+router.delete("/users/pre-created/:userId", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const deleted = deletePreCreatedUser(request.params.userId);
+
+    if (!deleted) {
+      return response.status(404).json({ message: "Пользователь не найден" });
+    }
+
+    return response.status(204).send();
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось удалить предзаполненного пользователя",
+    });
+  }
+});
+
+router.post("/users/pre-created/:userId/activate", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const activated = activatePreCreatedUser(request.params.userId);
+
+    if (!activated) {
+      return response.status(404).json({ message: "Пользователь не найден" });
+    }
+
+    return response.json({
+      id: activated.id,
+      email: activated.email,
+      name: activated.name,
+      role: activated.role,
+      teamId: activated.teamId,
+      title: activated.title,
+      tabNumber: activated.tabNumber,
+      otpCode: activated.otpCode,
+      status: activated.status,
+      createdAt: activated.createdAt.toISOString(),
+      updatedAt: activated.updatedAt.toISOString(),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось активировать пользователя",
     });
   }
 });

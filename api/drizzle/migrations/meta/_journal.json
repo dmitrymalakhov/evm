@@ -36,6 +36,13 @@
       "when": 1732100000000,
       "tag": "0004_add_secret_santa",
       "breakpoints": false
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1732200000000,
+      "tag": "0005_add_user_status",
+      "breakpoints": false
     }
   ]
 }

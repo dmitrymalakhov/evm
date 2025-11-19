@@ -1,5 +1,7 @@
 export type Role = "user" | "mod" | "admin";
 
+export type UserStatus = "active" | "pending";
+
 export type User = {
   id: string;
   email: string;
@@ -10,6 +12,7 @@ export type User = {
   avatarUrl?: string;
   tabNumber: string;
   otpCode: string;
+  status?: UserStatus;
   createdAt: number;
   updatedAt: number;
 };

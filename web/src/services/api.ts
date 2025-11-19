@@ -556,6 +556,97 @@ export const api = {
     request<UserActivityTimeline[]>(
       `/analytics/user-timeline/${userId}?days=${days}`,
     ),
+
+  // Pre-created users endpoints
+  getPreCreatedUsers: () =>
+    request<
+      Array<{
+        id: string;
+        email: string;
+        name: string;
+        role: Role;
+        teamId?: string;
+        title?: string;
+        tabNumber: string;
+        otpCode: string;
+        status: "active" | "pending";
+        createdAt: string;
+        updatedAt: string;
+      }>
+    >("/admin/users/pre-created"),
+
+  createPreCreatedUser: (payload: {
+    email?: string;
+    name?: string;
+    role?: Role;
+    teamId?: string;
+    title?: string;
+  }) =>
+    request<{
+      id: string;
+      email: string;
+      name: string;
+      role: Role;
+      teamId?: string;
+      title?: string;
+      tabNumber: string;
+      otpCode: string;
+      status: "active" | "pending";
+      createdAt: string;
+      updatedAt: string;
+    }>("/admin/users/pre-created", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  updatePreCreatedUser: (
+    userId: string,
+    payload: {
+      email?: string;
+      name?: string;
+      role?: Role;
+      teamId?: string;
+      title?: string;
+    },
+  ) =>
+    request<{
+      id: string;
+      email: string;
+      name: string;
+      role: Role;
+      teamId?: string;
+      title?: string;
+      tabNumber: string;
+      otpCode: string;
+      status: "active" | "pending";
+      createdAt: string;
+      updatedAt: string;
+    }>(`/admin/users/pre-created/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
+  deletePreCreatedUser: (userId: string) =>
+    request<null>(`/admin/users/pre-created/${userId}`, {
+      method: "DELETE",
+    }),
+
+  activatePreCreatedUser: (userId: string) =>
+    request<{
+      id: string;
+      email: string;
+      name: string;
+      role: Role;
+      teamId?: string;
+      title?: string;
+      tabNumber: string;
+      otpCode: string;
+      status: "active" | "pending";
+      createdAt: string;
+      updatedAt: string;
+    }>(`/admin/users/pre-created/${userId}/activate`, {
+      method: "POST",
+    }),
 };
 
 export const authSession = {

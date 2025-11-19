@@ -252,3 +252,19 @@ export type SecretSantaAdminState = {
   };
 };
 
+export type UserStatus = "active" | "pending";
+
+export type PreCreatedUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  teamId?: string;
+  title?: string;
+  tabNumber: string;
+  otpCode: string;
+  status: UserStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+

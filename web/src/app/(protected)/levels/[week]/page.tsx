@@ -180,8 +180,32 @@ export default function LevelWeekPage() {
   const activeWeek = currentLevel?.iteration?.currentWeek;
   const totalWeeks = currentLevel?.iteration?.totalWeeks ?? 0;
   const currentWeek = weekNumber || currentLevel?.week || 0;
-  const closesAtTarget =
-    currentLevel?.closesAt ?? new Date(Date.now() + 86_400_000).toISOString();
+  const closesAtTarget = useMemo(() => {
+    const target = currentLevel?.closesAt;
+    if (!target || target.trim() === "") {
+      // If no closesAt, use default (24 hours from now)
+      const defaultTarget = new Date(Date.now() + 86_400_000).toISOString();
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[Timer] No closesAt provided, using default:", defaultTarget);
+      }
+      return defaultTarget;
+    }
+    // Validate the date
+    const parsedDate = new Date(target);
+    if (isNaN(parsedDate.getTime())) {
+      // Invalid date, use default
+      const defaultTarget = new Date(Date.now() + 86_400_000).toISOString();
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[Timer] Invalid closesAt date:", target, "using default:", defaultTarget);
+      }
+      return defaultTarget;
+    }
+    // Debug: log the target date
+    if (process.env.NODE_ENV === "development") {
+      console.log("[Timer] closesAtTarget:", target, "parsed:", parsedDate, "isValid:", !isNaN(parsedDate.getTime()));
+    }
+    return target;
+  }, [currentLevel?.closesAt]);
   const totalKeySlots = currentLevel?.iteration?.totalWeeks ?? 6;
   const unlockedKeyCount = unlockedKeys.length;
   const isActiveWeek = activeWeek === currentWeek;

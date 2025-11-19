@@ -20,6 +20,7 @@ import type {
   Iteration,
   SecretSantaState,
   SecretSantaAdminState,
+  PreCreatedUser,
 } from "@/types/contracts";
 import { cn } from "@/lib/utils";
 
@@ -119,7 +120,7 @@ type TaskSubmission = {
 };
 
 type LevelWithIteration = Level & { iterationId?: string };
-type AdminTabId = "levels" | "submissions" | "metrics" | "analytics" | "secret-santa";
+type AdminTabId = "levels" | "submissions" | "metrics" | "analytics" | "secret-santa" | "users";
 
 export default function AdminPage() {
   const [levels, setLevels] = useState<LevelWithIteration[]>([]);
@@ -136,6 +137,16 @@ export default function AdminPage() {
   const [submissionPage, setSubmissionPage] = useState(1);
   const [activeTab, setActiveTab] = useState<AdminTabId>("levels");
   const [isDrawingAllSecretSanta, setIsDrawingAllSecretSanta] = useState(false);
+  const [preCreatedUsers, setPreCreatedUsers] = useState<PreCreatedUser[]>([]);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<PreCreatedUser | null>(null);
+  const [userForm, setUserForm] = useState({
+    email: "",
+    name: "",
+    role: "user" as "user" | "mod" | "admin",
+    teamId: "",
+    title: "",
+  });
   const SUBMISSIONS_PER_PAGE = 10;
 
   // Level form state
@@ -213,6 +224,18 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadPreCreatedUsers = useCallback(async () => {
+    try {
+      const users = await api.getPreCreatedUsers();
+      setPreCreatedUsers(users);
+    } catch (error) {
+      toast.error("Не удалось загрузить предзаполненных пользователей", {
+        description: error instanceof Error ? error.message : "Ошибка загрузки",
+      });
+      setPreCreatedUsers([]);
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -257,6 +280,11 @@ export default function AdminPage() {
         // Load secret santa if tab is active
         if (activeTab === "secret-santa") {
           await loadSecretSanta();
+        }
+
+        // Load pre-created users if tab is active
+        if (activeTab === "users") {
+          await loadPreCreatedUsers();
         }
       } catch (error) {
         if (!isMounted) return;
@@ -525,6 +553,93 @@ export default function AdminPage() {
     }
   }, [activeTab, loadSecretSanta]);
 
+  // Load pre-created users when tab is activated
+  useEffect(() => {
+    if (activeTab === "users") {
+      void loadPreCreatedUsers();
+    }
+  }, [activeTab, loadPreCreatedUsers]);
+
+  const handleCreateUser = () => {
+    setEditingUser(null);
+    setUserForm({
+      email: "",
+      name: "",
+      role: "user",
+      teamId: "",
+      title: "",
+    });
+    setShowUserForm(true);
+  };
+
+  const handleEditUser = (user: PreCreatedUser) => {
+    setEditingUser(user);
+    setUserForm({
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      teamId: user.teamId || "",
+      title: user.title || "",
+    });
+    setShowUserForm(true);
+  };
+
+  const handleSaveUser = async () => {
+    try {
+      const payload = {
+        email: userForm.email || undefined,
+        name: userForm.name || undefined,
+        role: userForm.role,
+        teamId: userForm.teamId || undefined,
+        title: userForm.title || undefined,
+      };
+
+      if (editingUser) {
+        await api.updatePreCreatedUser(editingUser.id, payload);
+        toast.success("Пользователь обновлён");
+      } else {
+        await api.createPreCreatedUser(payload);
+        toast.success("Пользователь создан");
+      }
+
+      setShowUserForm(false);
+      await loadPreCreatedUsers();
+    } catch (error) {
+      toast.error("Не удалось сохранить пользователя", {
+        description:
+          error instanceof Error ? error.message : "Ошибка сохранения",
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Вы уверены, что хотите удалить этого пользователя?")) return;
+
+    try {
+      await api.deletePreCreatedUser(userId);
+      toast.success("Пользователь удалён");
+      await loadPreCreatedUsers();
+    } catch (error) {
+      toast.error("Не удалось удалить пользователя", {
+        description:
+          error instanceof Error ? error.message : "Ошибка удаления",
+      });
+    }
+  };
+
+  const handleActivateUser = async (userId: string) => {
+    try {
+      await api.activatePreCreatedUser(userId);
+      toast.success("Пользователь активирован");
+      await loadPreCreatedUsers();
+    } catch (error) {
+      toast.error("Не удалось активировать пользователя", {
+        description:
+          error instanceof Error ? error.message : "Ошибка активации",
+      });
+    }
+  };
+
   const pendingSubmissionCount = useMemo(
     () => submissions.filter((submission) => submission.status === "pending").length,
     [submissions]
@@ -565,6 +680,12 @@ export default function AdminPage() {
           description: secretSantaState ? `Участников: ${secretSantaState.stats.total}` : "Управление активностью",
           badge: secretSantaState?.stats.total,
         },
+        {
+          id: "users" as const,
+          label: "Пользователи",
+          description: "Предзаполнение аккаунтов команды",
+          badge: preCreatedUsers.length,
+        },
       ] satisfies Array<{
         id: AdminTabId;
         label: string;
@@ -572,7 +693,7 @@ export default function AdminPage() {
         badge?: number;
         disabled?: boolean;
       }>,
-    [levels.length, submissions.length, pendingSubmissionCount, metrics, secretSantaState]
+    [levels.length, submissions.length, pendingSubmissionCount, metrics, secretSantaState, preCreatedUsers.length]
   );
 
   if (isLoading) {
@@ -1492,6 +1613,94 @@ export default function AdminPage() {
           </Card>
         )}
 
+        {activeTab === "users" && (
+          <Card>
+            <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <CardTitle>Предзаполненные пользователи</CardTitle>
+                <p className="text-xs uppercase tracking-[0.22em] text-evm-muted">
+                  Создание и управление аккаунтами для членов команды
+                </p>
+              </div>
+              <Button onClick={handleCreateUser}>Создать пользователя</Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {preCreatedUsers.length === 0 ? (
+                <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
+                  Предзаполненные пользователи не найдены. Создайте первого.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {preCreatedUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="rounded-md border border-evm-steel/40 bg-black/40 p-4"
+                    >
+                      <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold uppercase tracking-[0.18em]">
+                              {user.name}
+                            </p>
+                            <span className="rounded-md border border-yellow-500/50 bg-yellow-500/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-yellow-500">
+                              Предзаполнен
+                            </span>
+                            <span className="rounded-md border border-evm-steel/40 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-evm-muted">
+                              {user.role}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs uppercase tracking-[0.16em] text-evm-muted">
+                            Email: {user.email}
+                          </p>
+                          <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                            Табельный номер: {user.tabNumber}
+                          </p>
+                          <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                            Код доступа: {user.otpCode}
+                          </p>
+                          {user.title && (
+                            <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                              Должность: {user.title}
+                            </p>
+                          )}
+                          {user.teamId && (
+                            <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                              Команда: {user.teamId}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleActivateUser(user.id)}
+                          >
+                            Активировать
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            Редактировать
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteUser(user.id)}
+                          >
+                            Удалить
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
       </ConsoleFrame>
 
       {/* Level Form Modal */}
@@ -2053,6 +2262,112 @@ export default function AdminPage() {
                 Отмена
               </Button>
               <Button onClick={handleSaveSubmission}>Сохранить</Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* User Form Modal */}
+      {showUserForm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowUserForm(false);
+            }
+          }}
+        >
+          <Card
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="flex-shrink-0">
+              <CardTitle>
+                {editingUser ? "Редактировать пользователя" : "Создать пользователя"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 overflow-y-auto flex-1 min-h-0">
+              <div className="space-y-2">
+                <Label htmlFor="userEmail">Email (опционально)</Label>
+                <Input
+                  id="userEmail"
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, email: e.target.value })
+                  }
+                  placeholder="Будет сгенерирован автоматически, если не указан"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="userName">Имя (опционально)</Label>
+                <Input
+                  id="userName"
+                  value={userForm.name}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, name: e.target.value })
+                  }
+                  placeholder="Будет сгенерирован тематический ник, если не указан"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="userRole">Роль</Label>
+                <select
+                  id="userRole"
+                  className="flex h-11 w-full rounded-md border border-white/10 bg-black/40 px-4 text-sm uppercase tracking-[0.18em] text-foreground"
+                  value={userForm.role}
+                  onChange={(e) =>
+                    setUserForm({
+                      ...userForm,
+                      role: e.target.value as "user" | "mod" | "admin",
+                    })
+                  }
+                >
+                  <option value="user">Пользователь</option>
+                  <option value="mod">Модератор</option>
+                  <option value="admin">Администратор</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="userTeamId">ID команды (опционально)</Label>
+                <Input
+                  id="userTeamId"
+                  value={userForm.teamId}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, teamId: e.target.value })
+                  }
+                  placeholder="ID команды"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="userTitle">Должность (опционально)</Label>
+                <Input
+                  id="userTitle"
+                  value={userForm.title}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, title: e.target.value })
+                  }
+                  placeholder="Должность пользователя"
+                />
+              </div>
+              <div className="rounded-md border border-evm-accent/30 bg-evm-accent/5 p-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-evm-muted mb-1">
+                  Информация
+                </p>
+                <p className="text-xs text-foreground/90">
+                  Если email и имя не указаны, они будут автоматически сгенерированы.
+                  Табельный номер и код доступа генерируются автоматически для всех пользователей.
+                </p>
+              </div>
+            </CardContent>
+            <div className="flex justify-end gap-2 p-6 border-t border-evm-steel/20 flex-shrink-0">
+              <Button
+                variant="ghost"
+                onClick={() => setShowUserForm(false)}
+              >
+                Отмена
+              </Button>
+              <Button onClick={handleSaveUser}>Сохранить</Button>
             </div>
           </Card>
         </div>
