@@ -12167,3 +12167,9 @@ API server listening on http://0.0.0.0:4000
 [0mGET /teams/t1/progress [36m304[0m 1.365 ms - -[0m
 [0mGET /teams/t1/progress [36m304[0m 2.277 ms - -[0m
 [0mGET /teams/t1/progress [36m304[0m 0.630 ms - -[0m
+[0mGET /teams/t1/progress [36m304[0m 0.604 ms - -[0m
+[0mGET /teams/t1/progress [36m304[0m 2.016 ms - -[0m
+[0mGET /teams/t1/progress [36m304[0m 0.716 ms - -[0m
+[0mGET /teams/t1/progress [36m304[0m 2.264 ms - -[0m
+[0mGET /teams/t1/progress [36m304[0m 1.165 ms - -[0m
+[0mGET /teams/t1/progress [36m304[0m 1.117 ms - -[0m

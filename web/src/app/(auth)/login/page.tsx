@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -16,6 +16,8 @@ import { Separator } from "@/components/ui/separator";
 import { useSessionStore } from "@/store/use-session-store";
 import { TeletypeText } from "@/components/ui/teletype-text";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
+import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
+import { hasSeenOnboarding } from "@/lib/onboarding";
 
 const formSchema = z.object({
   tabNumber: z
@@ -33,6 +35,8 @@ type FormValues = z.infer<typeof formSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const { user, login, isLoading, error } = useSessionStore();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [hasCheckedOnboarding, setHasCheckedOnboarding] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -47,6 +51,13 @@ export default function LoginPage() {
       router.replace("/levels");
     }
   }, [user, router]);
+
+  useEffect(() => {
+    // Проверяем, видел ли пользователь онбординг
+    const hasSeen = hasSeenOnboarding();
+    setShowOnboarding(!hasSeen);
+    setHasCheckedOnboarding(true);
+  }, []);
 
   useEffect(() => {
     if (error) {
@@ -72,6 +83,20 @@ export default function LoginPage() {
       });
     }
   };
+
+  // Показываем онбординг, если пользователь его еще не видел
+  if (!hasCheckedOnboarding) {
+    return null; // Пока проверяем
+  }
+
+  if (showOnboarding) {
+    return (
+      <OnboardingFlow
+        onComplete={() => setShowOnboarding(false)}
+        onSkip={() => setShowOnboarding(false)}
+      />
+    );
+  }
 
   return (
     <div className="flex w-full max-w-xl flex-col gap-10">
