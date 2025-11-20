@@ -33,6 +33,24 @@ export const useLevelStore = create<LevelState>((set) => ({
       const level = week
         ? await api.getLevelByWeek(week)
         : await api.getCurrentLevel();
+      
+      console.log("[LevelStore] Loaded level:", level ? {
+        id: level.id,
+        week: level.week,
+        title: level.title,
+      } : null);
+      
+      if (!level) {
+        console.warn("[LevelStore] Level is null or undefined");
+        set({
+          error: "Активный уровень не найден",
+          isLoading: false,
+          currentLevel: null,
+          tasks: [],
+        });
+        return;
+      }
+
       const tasks = await api.getTasksForLevel(level.id);
       let unlockedKeys: string[] = [];
       if (teamId) {
@@ -64,10 +82,13 @@ export const useLevelStore = create<LevelState>((set) => ({
         isLoading: false,
       });
     } catch (error) {
+      console.error("[LevelStore] Error loading level:", error);
       set({
         error:
           error instanceof Error ? error.message : "Не удалось загрузить уровень",
         isLoading: false,
+        currentLevel: null,
+        tasks: [],
       });
     }
   },

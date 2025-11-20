@@ -62,12 +62,52 @@ export function listPreCreatedUsers(): PreCreatedUser[] {
 export function createPreCreatedUser(
   input: PreCreatedUserInput,
 ): PreCreatedUser {
-  // Получаем все существующие табельные номера
-  const existingUsers = db.select({ tabNumber: users.tabNumber }).from(users).all();
+  // Получаем все существующие табельные номера и имена
+  const existingUsers = db.select({ tabNumber: users.tabNumber, name: users.name }).from(users).all();
   const existingTabNumbers = existingUsers.map((u) => u.tabNumber);
+  const existingNames = existingUsers.map((u) => u.name);
 
-  // Генерируем данные
-  const nickname = input.name || generateThematicNickname();
+  // Генерируем данные с проверкой уникальности ников
+  let nickname: string;
+  
+  if (input.name) {
+    // Если имя предоставлено, проверяем уникальность
+    nickname = input.name;
+    if (existingNames.includes(nickname)) {
+      // Если имя занято, генерируем тематический ник
+      nickname = generateThematicNickname(existingNames);
+    }
+  } else {
+    // Генерируем тематический ник с проверкой уникальности
+    nickname = generateThematicNickname(existingNames);
+  }
+  
+  // Финальная проверка уникальности имени перед вставкой
+  // Если имя все еще занято, добавляем суффикс
+  let nameAttempts = 0;
+  const maxNameAttempts = 100;
+  let finalNickname = nickname;
+  
+  while (existingNames.includes(finalNickname) && nameAttempts < maxNameAttempts) {
+    // Генерируем новый тематический ник
+    const newNamesList = [...existingNames];
+    finalNickname = generateThematicNickname(newNamesList);
+    nameAttempts++;
+    
+    // Если после многих попыток имя все еще занято, добавляем суффикс
+    if (nameAttempts >= maxNameAttempts - 10) {
+      const timestamp = Date.now().toString().slice(-4);
+      finalNickname = `${nickname}-${timestamp}`;
+      // Обновляем список для следующей проверки
+      if (existingNames.includes(finalNickname)) {
+        finalNickname = `${nickname}-${timestamp}-${Math.floor(Math.random() * 1000)}`;
+      }
+      break;
+    }
+  }
+  
+  nickname = finalNickname;
+  
   const email = input.email || generateEmailFromNickname(nickname);
   const tabNumber = generateTabNumber(existingTabNumbers);
   const otpCode = generateOtpCode();
@@ -93,6 +133,19 @@ export function createPreCreatedUser(
 
   if (existingUserByTab) {
     throw new Error(`Пользователь с табельным номером ${tabNumber} уже существует`);
+  }
+
+  // Финальная проверка уникальности имени перед вставкой
+  const existingUserByName = db
+    .select()
+    .from(users)
+    .where(eq(users.name, nickname))
+    .get();
+
+  if (existingUserByName) {
+    // Генерируем уникальный ник с timestamp
+    const timestamp = Date.now().toString().slice(-4);
+    nickname = `${nickname}-${timestamp}`;
   }
 
   const now = new Date();

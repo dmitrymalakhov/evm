@@ -16,11 +16,15 @@ export function loginWithOtp(payload: LoginPayload) {
     throw new Error("Требуются табельный номер и одноразовый код.");
   }
 
+  console.log("[AUTH] Login attempt:", { tabNumber, otp, tabNumberLength: tabNumber.length, otpLength: otp.length });
+
   const user = db
     .select()
     .from(users)
     .where(and(eq(users.tabNumber, tabNumber), eq(users.otpCode, otp)))
     .get();
+
+  console.log("[AUTH] User found:", user ? { id: user.id, tabNumber: user.tabNumber, status: user.status } : "null");
 
   if (!user) {
     throw new Error("Пользователь не найден или код неверен.");

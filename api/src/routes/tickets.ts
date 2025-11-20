@@ -15,14 +15,40 @@ router.get("/me", (request, response) => {
       return response.status(404).json({ message: "Пользователь не найден" });
     }
 
-    const ticket = db
+    let ticket = db
       .select()
       .from(tickets)
       .where(eq(tickets.userId, user.id))
       .get();
 
+    // Если билета нет, создаем его автоматически со статусом "none"
     if (!ticket) {
-      return response.status(404).json({ message: "Билет не найден" });
+      const ticketId = `tk-${user.id}`;
+      const dateStr = new Date().toISOString().split("T")[0].replace(/-/g, "");
+      const qrCode = `EVM-QR-${user.tabNumber.toUpperCase()}-${dateStr}`;
+      const pdfUrl = `/tickets/${ticketId}/pdf`;
+
+      db.insert(tickets)
+        .values({
+          id: ticketId,
+          userId: user.id,
+          qr: qrCode,
+          pdfUrl: pdfUrl,
+          status: "none",
+        })
+        .run();
+
+      ticket = db
+        .select()
+        .from(tickets)
+        .where(eq(tickets.userId, user.id))
+        .get();
+    }
+
+    if (!ticket) {
+      return response.status(500).json({
+        message: "Не удалось создать билет пользователя",
+      });
     }
 
     return response.json(ticket);

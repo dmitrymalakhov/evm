@@ -9,8 +9,10 @@ import {
   teams,
   users,
   userWeekProgress,
+  levels,
 } from "../db/schema.js";
 import { logUserAction } from "./analytics.js";
+import { getTasksForLevel } from "./levels.js";
 
 type TransactionClient = Parameters<
   Parameters<typeof db.transaction>[0]
@@ -314,16 +316,48 @@ export function getTeamProgress(teamId: string) {
     }))
     .sort((a, b) => a.week - b.week);
 
+  // Пересчитываем unlocked keys на основе выполненных задач
+  const unlockedKeys: string[] = [];
+  const completedTasksArray = Array.from(allCompletedTasks);
+  
+  // Получаем все уровни и их задачи
+  const allLevels = db.select().from(levels).all();
+  
+  for (const level of allLevels) {
+    if (!level.iterationId) continue;
+    
+    const allTasksForLevel = getTasksForLevel(level.id);
+    const allTaskIdsForLevel = allTasksForLevel.map(t => t.id);
+    
+    // Проверяем, все ли задачи недели выполнены
+    const allTasksCompleted = allTaskIdsForLevel.length > 0 && 
+      allTaskIdsForLevel.every(taskId => completedTasksArray.includes(taskId));
+    
+    if (allTasksCompleted) {
+      const weekKey = `week-${level.week}`;
+      if (!unlockedKeys.includes(weekKey)) {
+        unlockedKeys.push(weekKey);
+      }
+    }
+  }
+  
+  // Сортируем ключи по номеру недели
+  unlockedKeys.sort((a, b) => {
+    const weekA = parseInt(a.replace('week-', ''));
+    const weekB = parseInt(b.replace('week-', ''));
+    return weekA - weekB;
+  });
+
   // Обновляем или создаем запись teamProgress с пересчитанными данными
   if (existingProgress) {
     db.update(teamProgress)
       .set({
         totalPoints: totalTeamPoints,
-        completedTasks: Array.from(allCompletedTasks),
+        completedTasks: completedTasksArray,
         weeklyStats: weeklyStats,
+        unlockedKeys: unlockedKeys,
         // Сохраняем другие поля без изменений
         progress: existingProgress.progress,
-        unlockedKeys: existingProgress.unlockedKeys,
         completedWeeks: existingProgress.completedWeeks,
       })
       .where(eq(teamProgress.teamId, teamId))
@@ -333,8 +367,9 @@ export function getTeamProgress(teamId: string) {
     return {
       ...existingProgress,
       totalPoints: totalTeamPoints,
-      completedTasks: Array.from(allCompletedTasks),
+      completedTasks: completedTasksArray,
       weeklyStats: weeklyStats,
+      unlockedKeys: unlockedKeys,
     };
   } else {
     // Создаем новую запись, если её нет
@@ -342,8 +377,8 @@ export function getTeamProgress(teamId: string) {
       teamId,
       totalPoints: totalTeamPoints,
       progress: 0,
-      completedTasks: Array.from(allCompletedTasks),
-      unlockedKeys: [],
+      completedTasks: completedTasksArray,
+      unlockedKeys: unlockedKeys,
       completedWeeks: [],
       weeklyStats: weeklyStats,
     };

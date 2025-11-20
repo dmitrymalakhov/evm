@@ -10,7 +10,6 @@ import {
   ideas,
   iterations,
   levels,
-  secretSantaParticipants,
   sessions,
   taskSubmissions,
   tasks,
@@ -128,42 +127,6 @@ function seedCore() {
   ]).run();
 
   const now = Date.now();
-
-  db.insert(secretSantaParticipants).values([
-    {
-      id: "ss-u1",
-      userId: "u1",
-      wishlist: "Что-то с неоновыми огнями и тёплыми нитями",
-      status: "gifted",
-      reminderNote: "Привезти открытку для оператора",
-      matchedUserId: "u2",
-      matchedAt: new Date(now - 1000 * 60 * 60 * 24 * 4),
-      giftedAt: new Date(now - 1000 * 60 * 60 * 24 * 2),
-      createdAt: new Date(now - 1000 * 60 * 60 * 24 * 7),
-      updatedAt: new Date(),
-    },
-    {
-      id: "ss-u2",
-      userId: "u2",
-      wishlist: "Коллекционная катушка или редкая настольная игра",
-      status: "matched",
-      reminderNote: "Найти игру до 15 декабря",
-      matchedUserId: "u3",
-      matchedAt: new Date(now - 1000 * 60 * 60 * 24 * 3),
-      createdAt: new Date(now - 1000 * 60 * 60 * 24 * 6),
-      updatedAt: new Date(),
-    },
-    {
-      id: "ss-u3",
-      userId: "u3",
-      wishlist: "Ароматический набор «Северное сияние»",
-      status: "waiting",
-      reminderNote: null,
-      matchedUserId: null,
-      createdAt: new Date(now - 1000 * 60 * 60 * 24 * 5),
-      updatedAt: new Date(),
-    },
-  ]).run();
 
   db.insert(teamMembers).values([
     { teamId: "t1", userId: "u1", joinedAt: new Date() },

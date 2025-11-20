@@ -15,6 +15,7 @@ import ticketsRouter from "./tickets";
 import uploadsRouter from "./uploads";
 import validatorRouter from "./validator";
 import secretSantaRouter from "./secret-santa";
+import telegramRouter from "./telegram";
 
 const router = Router();
 
@@ -33,6 +34,7 @@ router.use("/analytics", analyticsRouter);
 router.use("/validator", validatorRouter);
 router.use("/uploads", uploadsRouter);
 router.use("/secret-santa", secretSantaRouter);
+router.use("/telegram", telegramRouter);
 
 export default router;
 

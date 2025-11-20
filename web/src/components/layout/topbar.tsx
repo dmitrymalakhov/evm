@@ -33,14 +33,7 @@ export function Topbar() {
         </Button>
         <ThemeSwitcher />
         <div className="flex items-center gap-3">
-          <div className="relative h-10 w-10 overflow-hidden rounded-full border border-evm-steel/40">
-            <Image
-              src={user?.avatarUrl ?? "/avatars/op17.png"}
-              alt={user?.name ?? "Профиль"}
-              fill
-              sizes="40px"
-            />
-          </div>
+
           <div className="text-right">
             <p className="text-sm font-medium uppercase tracking-[0.2em]">
               {user?.name ?? "Оператор"}

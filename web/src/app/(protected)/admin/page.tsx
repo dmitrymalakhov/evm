@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
@@ -13,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { AnalyticsPanel } from "@/components/admin/analytics-panel";
 import { MetricsPanel } from "@/components/admin/metrics-panel";
 import { api } from "@/services/api";
+import { useSessionStore } from "@/store/use-session-store";
 import type {
   AdminMetrics,
   Level,
@@ -123,6 +125,8 @@ type LevelWithIteration = Level & { iterationId?: string };
 type AdminTabId = "levels" | "submissions" | "metrics" | "analytics" | "secret-santa" | "users";
 
 export default function AdminPage() {
+  const router = useRouter();
+  const { user, hasHydrated } = useSessionStore();
   const [levels, setLevels] = useState<LevelWithIteration[]>([]);
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
   const [submissions, setSubmissions] = useState<TaskSubmission[]>([]);
@@ -138,14 +142,46 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTabId>("levels");
   const [isDrawingAllSecretSanta, setIsDrawingAllSecretSanta] = useState(false);
   const [preCreatedUsers, setPreCreatedUsers] = useState<PreCreatedUser[]>([]);
+  const [allUsers, setAllUsers] = useState<Array<{
+    id: string;
+    email: string;
+    name: string;
+    role: "user" | "mod" | "admin";
+    teamId?: string;
+    title?: string;
+    avatarUrl?: string;
+    tabNumber: string;
+    otpCode: string;
+    status: "active" | "pending";
+    telegramId?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>>([]);
   const [showUserForm, setShowUserForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<PreCreatedUser | null>(null);
+  const [editingUser, setEditingUser] = useState<PreCreatedUser | {
+    id: string;
+    email: string;
+    name: string;
+    role: "user" | "mod" | "admin";
+    teamId?: string;
+    title?: string;
+    avatarUrl?: string;
+    tabNumber: string;
+    otpCode: string;
+    status: "active" | "pending";
+    telegramId?: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null>(null);
   const [userForm, setUserForm] = useState({
     email: "",
     name: "",
     role: "user" as "user" | "mod" | "admin",
     teamId: "",
     title: "",
+    tabNumber: "",
+    otpCode: "",
+    status: "active" as "active" | "pending",
   });
   const SUBMISSIONS_PER_PAGE = 10;
 
@@ -236,7 +272,32 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadAllUsers = useCallback(async () => {
+    try {
+      const users = await api.getAdminUsers();
+      setAllUsers(users);
+    } catch (error) {
+      toast.error("Не удалось загрузить пользователей", {
+        description: error instanceof Error ? error.message : "Ошибка загрузки",
+      });
+      setAllUsers([]);
+    }
+  }, []);
+
+  // Проверка прав доступа
   useEffect(() => {
+    if (hasHydrated && user && user.role !== "admin") {
+      toast.error("У вас нет доступа к этой странице");
+      router.push("/dashboard");
+    }
+  }, [user, hasHydrated, router]);
+
+  useEffect(() => {
+    // Не загружаем данные, если пользователь не админ или еще не загружен
+    if (!hasHydrated || !user || user.role !== "admin") {
+      return;
+    }
+
     let isMounted = true;
 
     async function load() {
@@ -553,12 +614,13 @@ export default function AdminPage() {
     }
   }, [activeTab, loadSecretSanta]);
 
-  // Load pre-created users when tab is activated
+  // Load users when tab is activated
   useEffect(() => {
     if (activeTab === "users") {
+      void loadAllUsers();
       void loadPreCreatedUsers();
     }
-  }, [activeTab, loadPreCreatedUsers]);
+  }, [activeTab, loadAllUsers, loadPreCreatedUsers]);
 
   const handleCreateUser = () => {
     setEditingUser(null);
@@ -568,11 +630,14 @@ export default function AdminPage() {
       role: "user",
       teamId: "",
       title: "",
+      tabNumber: "",
+      otpCode: "",
+      status: "active",
     });
     setShowUserForm(true);
   };
 
-  const handleEditUser = (user: PreCreatedUser) => {
+  const handleEditUser = (user: PreCreatedUser | typeof allUsers[0]) => {
     setEditingUser(user);
     setUserForm({
       email: user.email,
@@ -580,30 +645,63 @@ export default function AdminPage() {
       role: user.role,
       teamId: user.teamId || "",
       title: user.title || "",
+      tabNumber: "tabNumber" in user ? user.tabNumber : "",
+      otpCode: "otpCode" in user ? user.otpCode : "",
+      status: "status" in user ? user.status : "active",
     });
     setShowUserForm(true);
   };
 
   const handleSaveUser = async () => {
     try {
-      const payload = {
-        email: userForm.email || undefined,
-        name: userForm.name || undefined,
-        role: userForm.role,
-        teamId: userForm.teamId || undefined,
-        title: userForm.title || undefined,
-      };
+      if (editingUser && "status" in editingUser && editingUser.status === "pending") {
+        // Это pre-created user
+        const payload = {
+          email: userForm.email || undefined,
+          name: userForm.name || undefined,
+          role: userForm.role,
+          teamId: userForm.teamId || undefined,
+          title: userForm.title || undefined,
+        };
 
-      if (editingUser) {
         await api.updatePreCreatedUser(editingUser.id, payload);
         toast.success("Пользователь обновлён");
+        await loadPreCreatedUsers();
+      } else if (editingUser) {
+        // Это обычный пользователь
+        const payload = {
+          email: userForm.email || undefined,
+          name: userForm.name || undefined,
+          role: userForm.role,
+          teamId: userForm.teamId || undefined,
+          title: userForm.title || undefined,
+          tabNumber: userForm.tabNumber || undefined,
+          otpCode: userForm.otpCode || undefined,
+          status: userForm.status,
+        };
+
+        await api.updateAdminUser(editingUser.id, payload);
+        toast.success("Пользователь обновлён");
+        await loadAllUsers();
       } else {
-        await api.createPreCreatedUser(payload);
+        // Создание нового пользователя
+        const payload = {
+          email: userForm.email,
+          name: userForm.name,
+          role: userForm.role,
+          teamId: userForm.teamId || undefined,
+          title: userForm.title || undefined,
+          tabNumber: userForm.tabNumber || undefined,
+          otpCode: userForm.otpCode || undefined,
+          status: userForm.status,
+        };
+
+        await api.createAdminUser(payload);
         toast.success("Пользователь создан");
+        await loadAllUsers();
       }
 
       setShowUserForm(false);
-      await loadPreCreatedUsers();
     } catch (error) {
       toast.error("Не удалось сохранить пользователя", {
         description:
@@ -612,13 +710,18 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = async (userId: string, isPreCreated: boolean) => {
     if (!confirm("Вы уверены, что хотите удалить этого пользователя?")) return;
 
     try {
-      await api.deletePreCreatedUser(userId);
+      if (isPreCreated) {
+        await api.deletePreCreatedUser(userId);
+        await loadPreCreatedUsers();
+      } else {
+        await api.deleteAdminUser(userId);
+        await loadAllUsers();
+      }
       toast.success("Пользователь удалён");
-      await loadPreCreatedUsers();
     } catch (error) {
       toast.error("Не удалось удалить пользователя", {
         description:
@@ -683,8 +786,8 @@ export default function AdminPage() {
         {
           id: "users" as const,
           label: "Пользователи",
-          description: "Предзаполнение аккаунтов команды",
-          badge: preCreatedUsers.length,
+          description: "Управление всеми пользователями",
+          badge: allUsers.length,
         },
       ] satisfies Array<{
         id: AdminTabId;
@@ -693,13 +796,22 @@ export default function AdminPage() {
         badge?: number;
         disabled?: boolean;
       }>,
-    [levels.length, submissions.length, pendingSubmissionCount, metrics, secretSantaState, preCreatedUsers.length]
+    [levels.length, submissions.length, pendingSubmissionCount, metrics, secretSantaState, allUsers.length]
   );
 
-  if (isLoading) {
+  if (isLoading || !hasHydrated) {
     return (
       <ConsoleFrame className="flex h-[420px] items-center justify-center text-xs uppercase tracking-[0.24em] text-evm-muted">
         Загрузка панели администратора...
+      </ConsoleFrame>
+    );
+  }
+
+  // Проверка прав доступа
+  if (hasHydrated && (!user || user.role !== "admin")) {
+    return (
+      <ConsoleFrame className="flex h-[420px] items-center justify-center text-xs uppercase tracking-[0.24em] text-evm-accent">
+        Доступ запрещен. Требуются права администратора.
       </ConsoleFrame>
     );
   }
@@ -1614,91 +1726,110 @@ export default function AdminPage() {
         )}
 
         {activeTab === "users" && (
-          <Card>
-            <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <CardTitle>Предзаполненные пользователи</CardTitle>
-                <p className="text-xs uppercase tracking-[0.22em] text-evm-muted">
-                  Создание и управление аккаунтами для членов команды
-                </p>
-              </div>
-              <Button onClick={handleCreateUser}>Создать пользователя</Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {preCreatedUsers.length === 0 ? (
-                <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
-                  Предзаполненные пользователи не найдены. Создайте первого.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {preCreatedUsers.map((user) => (
-                    <div
-                      key={user.id}
-                      className="rounded-md border border-evm-steel/40 bg-black/40 p-4"
-                    >
-                      <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold uppercase tracking-[0.18em]">
-                              {user.name}
-                            </p>
-                            <span className="rounded-md border border-yellow-500/50 bg-yellow-500/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-yellow-500">
-                              Предзаполнен
-                            </span>
-                            <span className="rounded-md border border-evm-steel/40 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-evm-muted">
-                              {user.role}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-xs uppercase tracking-[0.16em] text-evm-muted">
-                            Email: {user.email}
-                          </p>
-                          <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
-                            Табельный номер: {user.tabNumber}
-                          </p>
-                          <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
-                            Код доступа: {user.otpCode}
-                          </p>
-                          {user.title && (
-                            <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
-                              Должность: {user.title}
-                            </p>
-                          )}
-                          {user.teamId && (
-                            <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
-                              Команда: {user.teamId}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleActivateUser(user.id)}
-                          >
-                            Активировать
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditUser(user)}
-                          >
-                            Редактировать
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteUser(user.id)}
-                          >
-                            Удалить
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <CardTitle>Все пользователи</CardTitle>
+                  <p className="text-xs uppercase tracking-[0.22em] text-evm-muted">
+                    Управление всеми пользователями системы
+                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <Button onClick={handleCreateUser}>Создать пользователя</Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {allUsers.length === 0 ? (
+                  <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
+                    Пользователи не найдены. Создайте первого.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {allUsers.map((user) => {
+                      const isPreCreated = user.status === "pending";
+                      return (
+                        <div
+                          key={user.id}
+                          className="rounded-md border border-evm-steel/40 bg-black/40 p-4"
+                        >
+                          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-semibold uppercase tracking-[0.18em]">
+                                  {user.name}
+                                </p>
+                                {isPreCreated && (
+                                  <span className="rounded-md border border-yellow-500/50 bg-yellow-500/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-yellow-500">
+                                    Предзаполнен
+                                  </span>
+                                )}
+                                {!isPreCreated && (
+                                  <span className="rounded-md border border-green-500/50 bg-green-500/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-green-500">
+                                    Активен
+                                  </span>
+                                )}
+                                <span className="rounded-md border border-evm-steel/40 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-evm-muted">
+                                  {user.role}
+                                </span>
+                              </div>
+                              <p className="mt-2 text-xs uppercase tracking-[0.16em] text-evm-muted">
+                                Email: {user.email}
+                              </p>
+                              <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                                Табельный номер: {user.tabNumber}
+                              </p>
+                              <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                                Код доступа: {user.otpCode}
+                              </p>
+                              {user.title && (
+                                <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                                  Должность: {user.title}
+                                </p>
+                              )}
+                              {user.teamId && (
+                                <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                                  Команда: {user.teamId}
+                                </p>
+                              )}
+                              {user.telegramId && (
+                                <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                                  Telegram ID: {user.telegramId}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-end gap-2">
+                              {isPreCreated && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => handleActivateUser(user.id)}
+                                >
+                                  Активировать
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditUser(user)}
+                              >
+                                Редактировать
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteUser(user.id, isPreCreated)}
+                              >
+                                Удалить
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
       </ConsoleFrame>
@@ -2288,7 +2419,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent className="space-y-4 overflow-y-auto flex-1 min-h-0">
               <div className="space-y-2">
-                <Label htmlFor="userEmail">Email (опционально)</Label>
+                <Label htmlFor="userEmail">Email {!editingUser || (editingUser && "status" in editingUser && editingUser.status !== "pending") ? "" : "(опционально)"}</Label>
                 <Input
                   id="userEmail"
                   type="email"
@@ -2296,18 +2427,20 @@ export default function AdminPage() {
                   onChange={(e) =>
                     setUserForm({ ...userForm, email: e.target.value })
                   }
-                  placeholder="Будет сгенерирован автоматически, если не указан"
+                  placeholder={!editingUser || (editingUser && "status" in editingUser && editingUser.status !== "pending") ? "Email пользователя" : "Будет сгенерирован автоматически, если не указан"}
+                  required={!editingUser || (editingUser && "status" in editingUser && editingUser.status !== "pending")}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="userName">Имя (опционально)</Label>
+                <Label htmlFor="userName">Имя {!editingUser || (editingUser && "status" in editingUser && editingUser.status !== "pending") ? "" : "(опционально)"}</Label>
                 <Input
                   id="userName"
                   value={userForm.name}
                   onChange={(e) =>
                     setUserForm({ ...userForm, name: e.target.value })
                   }
-                  placeholder="Будет сгенерирован тематический ник, если не указан"
+                  placeholder={!editingUser || (editingUser && "status" in editingUser && editingUser.status !== "pending") ? "Имя пользователя" : "Будет сгенерирован тематический ник, если не указан"}
+                  required={!editingUser || (editingUser && "status" in editingUser && editingUser.status !== "pending")}
                 />
               </div>
               <div className="space-y-2">
@@ -2350,13 +2483,57 @@ export default function AdminPage() {
                   placeholder="Должность пользователя"
                 />
               </div>
+              {(!editingUser || (editingUser && "status" in editingUser && editingUser.status !== "pending")) && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="userTabNumber">Табельный номер (опционально)</Label>
+                    <Input
+                      id="userTabNumber"
+                      value={userForm.tabNumber}
+                      onChange={(e) =>
+                        setUserForm({ ...userForm, tabNumber: e.target.value })
+                      }
+                      placeholder="Будет сгенерирован автоматически, если не указан"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userOtpCode">Код доступа (опционально)</Label>
+                    <Input
+                      id="userOtpCode"
+                      value={userForm.otpCode}
+                      onChange={(e) =>
+                        setUserForm({ ...userForm, otpCode: e.target.value })
+                      }
+                      placeholder="Будет сгенерирован автоматически, если не указан"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userStatus">Статус</Label>
+                    <select
+                      id="userStatus"
+                      className="flex h-11 w-full rounded-md border border-white/10 bg-black/40 px-4 text-sm uppercase tracking-[0.18em] text-foreground"
+                      value={userForm.status}
+                      onChange={(e) =>
+                        setUserForm({
+                          ...userForm,
+                          status: e.target.value as "active" | "pending",
+                        })
+                      }
+                    >
+                      <option value="active">Активен</option>
+                      <option value="pending">Предзаполнен</option>
+                    </select>
+                  </div>
+                </>
+              )}
               <div className="rounded-md border border-evm-accent/30 bg-evm-accent/5 p-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-evm-muted mb-1">
                   Информация
                 </p>
                 <p className="text-xs text-foreground/90">
-                  Если email и имя не указаны, они будут автоматически сгенерированы.
-                  Табельный номер и код доступа генерируются автоматически для всех пользователей.
+                  {!editingUser || (editingUser && "status" in editingUser && editingUser.status !== "pending")
+                    ? "Для обычных пользователей email и имя обязательны. Табельный номер и код доступа будут сгенерированы автоматически, если не указаны."
+                    : "Если email и имя не указаны, они будут автоматически сгенерированы. Табельный номер и код доступа генерируются автоматически для всех пользователей."}
                 </p>
               </div>
             </CardContent>

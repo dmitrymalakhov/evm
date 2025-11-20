@@ -4,6 +4,7 @@ import {
   type Idea,
   type Iteration,
   type Level,
+  type Role,
   type SecretSantaState,
   type SecretSantaAdminState,
   type SubmissionResponse,
@@ -161,7 +162,7 @@ async function parseErrorMessage(response: Response) {
   // Клонируем response, чтобы можно было прочитать body несколько раз
   const clonedResponse = response.clone();
   const contentType = response.headers.get("content-type");
-  
+
   if (contentType?.includes("application/json")) {
     try {
       const data = await response.json();
@@ -646,6 +647,109 @@ export const api = {
       updatedAt: string;
     }>(`/admin/users/pre-created/${userId}/activate`, {
       method: "POST",
+    }),
+
+  // Управление пользователями
+  getAdminUsers: () =>
+    request<
+      Array<{
+        id: string;
+        email: string;
+        name: string;
+        role: Role;
+        teamId?: string;
+        title?: string;
+        avatarUrl?: string;
+        tabNumber: string;
+        otpCode: string;
+        status: "active" | "pending";
+        telegramId?: string;
+        createdAt: string;
+        updatedAt: string;
+      }>
+    >("/admin/users"),
+
+  getAdminUser: (userId: string) =>
+    request<{
+      id: string;
+      email: string;
+      name: string;
+      role: Role;
+      teamId?: string;
+      title?: string;
+      avatarUrl?: string;
+      tabNumber: string;
+      otpCode: string;
+      status: "active" | "pending";
+      telegramId?: string;
+      createdAt: string;
+      updatedAt: string;
+    }>(`/admin/users/${userId}`),
+
+  createAdminUser: (payload: {
+    email: string;
+    name: string;
+    role: Role;
+    teamId?: string;
+    title?: string;
+    tabNumber?: string;
+    otpCode?: string;
+    status?: "active" | "pending";
+  }) =>
+    request<{
+      id: string;
+      email: string;
+      name: string;
+      role: Role;
+      teamId?: string;
+      title?: string;
+      avatarUrl?: string;
+      tabNumber: string;
+      otpCode: string;
+      status: "active" | "pending";
+      telegramId?: string;
+      createdAt: string;
+      updatedAt: string;
+    }>("/admin/users", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  updateAdminUser: (
+    userId: string,
+    payload: {
+      email?: string;
+      name?: string;
+      role?: Role;
+      teamId?: string;
+      title?: string;
+      tabNumber?: string;
+      otpCode?: string;
+      status?: "active" | "pending";
+    },
+  ) =>
+    request<{
+      id: string;
+      email: string;
+      name: string;
+      role: Role;
+      teamId?: string;
+      title?: string;
+      avatarUrl?: string;
+      tabNumber: string;
+      otpCode: string;
+      status: "active" | "pending";
+      telegramId?: string;
+      createdAt: string;
+      updatedAt: string;
+    }>(`/admin/users/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
+  deleteAdminUser: (userId: string) =>
+    request<null>(`/admin/users/${userId}`, {
+      method: "DELETE",
     }),
 };
 

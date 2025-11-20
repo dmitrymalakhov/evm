@@ -2,13 +2,14 @@ import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/client";
 import { adminMetrics, comments, taskSubmissions, users, tasks, teamProgress, userWeekProgress, levels, iterations } from "../db/schema";
-import { getTask } from "./levels";
+import { generateTabNumber, generateOtpCode } from "./user-generation";
+import { getTask, getTasksForLevel } from "./levels";
 import { getActiveIteration } from "./levels";
 import { logUserAction } from "./analytics";
 
 export function getAdminMetrics() {
   const metrics = db.select().from(adminMetrics).limit(1).get();
-  
+
   // Если метрики не найдены, возвращаем пустые значения
   // Метрики должны рассчитываться из реальных данных пользователей и активности
   if (!metrics) {
@@ -19,7 +20,7 @@ export function getAdminMetrics() {
       funnel: [],
     };
   }
-  
+
   return metrics;
 }
 
@@ -61,7 +62,7 @@ export function listTaskSubmissions() {
     .leftJoin(tasks, eq(taskSubmissions.taskId, tasks.id))
     .orderBy(desc(taskSubmissions.createdAt))
     .all();
-  
+
   // Log submissions with photos for debugging and ensure payload is properly parsed
   const processedSubmissions = submissions.map((submission) => {
     // Ensure payload is an object (Drizzle should handle this, but let's be safe)
@@ -74,7 +75,7 @@ export function listTaskSubmissions() {
         console.error("🔴 [LIST SUBMISSIONS] Failed to parse payload:", { id: submission.id, error: e });
       }
     }
-    
+
     if (payload && typeof payload === 'object' && 'photos' in payload) {
       console.log("🔵 [LIST SUBMISSIONS] Submission with photos:", {
         id: submission.id,
@@ -86,13 +87,13 @@ export function listTaskSubmissions() {
         payloadKeys: Object.keys(payload),
       });
     }
-    
+
     return {
       ...submission,
       payload: payload as Record<string, unknown>,
     };
   });
-  
+
   return processedSubmissions;
 }
 
@@ -117,11 +118,11 @@ export function getTaskSubmissionById(submissionId: string) {
     .leftJoin(tasks, eq(taskSubmissions.taskId, tasks.id))
     .where(eq(taskSubmissions.id, submissionId))
     .get();
-  
+
   if (!submission) {
     return null;
   }
-  
+
   // Ensure payload is an object (Drizzle should handle this, but let's be safe)
   let payload = submission.payload;
   if (typeof payload === 'string') {
@@ -132,7 +133,7 @@ export function getTaskSubmissionById(submissionId: string) {
       console.error("🔴 [GET SUBMISSION] Failed to parse payload:", { id: submissionId, error: e });
     }
   }
-  
+
   if (payload && typeof payload === 'object' && 'photos' in payload) {
     console.log("🔵 [GET SUBMISSION] Submission with photos:", {
       id: submission.id,
@@ -143,7 +144,7 @@ export function getTaskSubmissionById(submissionId: string) {
       isArray: Array.isArray(payload.photos),
     });
   }
-  
+
   return {
     ...submission,
     payload: payload as Record<string, unknown>,
@@ -215,7 +216,7 @@ export function updateTaskSubmission(
         .where(eq(iterations.id, level.iterationId))
         .get();
     }
-    
+
     if (!iteration) {
       iteration = getActiveIteration();
     }
@@ -227,98 +228,144 @@ export function updateTaskSubmission(
 
     // Update points only if status changed to/from "accepted"
     if ((previousStatus !== "accepted" && newStatus === "accepted") ||
-        (previousStatus === "accepted" && newStatus !== "accepted")) {
+      (previousStatus === "accepted" && newStatus !== "accepted")) {
 
-    // Update team progress (only if user has a team)
-    if (user.teamId) {
-      const currentTeamProgress = db
-        .select()
-        .from(teamProgress)
-        .where(eq(teamProgress.teamId, user.teamId))
-        .get();
+      const isNowAccepted = newStatus === "accepted";
+      const wasAccepted = previousStatus === "accepted";
 
-      if (currentTeamProgress) {
-        const completedTasks = currentTeamProgress.completedTasks;
-        const wasCompleted = completedTasks.includes(task.id);
-        const isNowAccepted = newStatus === "accepted";
-        
-        if (isNowAccepted && !wasCompleted) {
-          // Add task to completed and add points
-          const newCompletedTasks = [...completedTasks, task.id];
-          const newTotalPoints = currentTeamProgress.totalPoints + task.points;
-          const newProgress = Math.min(100, currentTeamProgress.progress + 10);
+      // Update team progress (only if user has a team)
+      if (user.teamId) {
+        const currentTeamProgress = db
+          .select()
+          .from(teamProgress)
+          .where(eq(teamProgress.teamId, user.teamId))
+          .get();
 
-          // Update weekly stats
-          const weeklyStats = currentTeamProgress.weeklyStats;
-          const weekStat = weeklyStats.find((stat) => stat.week === level.week);
-          if (weekStat) {
-            weekStat.points += task.points;
-            weekStat.tasksCompleted += 1;
-          } else {
-            weeklyStats.push({
-              week: level.week,
-              points: task.points,
-              tasksCompleted: 1,
-            });
-          }
+        if (currentTeamProgress) {
+          const completedTasks = currentTeamProgress.completedTasks;
+          const wasCompleted = completedTasks.includes(task.id);
 
-          db.update(teamProgress)
-            .set({
-              totalPoints: newTotalPoints,
-              progress: newProgress,
-              completedTasks: newCompletedTasks,
-              weeklyStats: weeklyStats,
-            })
-            .where(eq(teamProgress.teamId, user.teamId))
-            .run();
-        } else if (!isNowAccepted && wasCompleted) {
-          // Remove task from completed and remove points
-          const newCompletedTasks = completedTasks.filter(id => id !== task.id);
-          const newTotalPoints = Math.max(0, currentTeamProgress.totalPoints - task.points);
-          const newProgress = Math.max(0, currentTeamProgress.progress - 10);
+          if (isNowAccepted && !wasCompleted) {
+            // Add task to completed and add points
+            const newCompletedTasks = [...completedTasks, task.id];
+            const newTotalPoints = currentTeamProgress.totalPoints + task.points;
+            const newProgress = Math.min(100, currentTeamProgress.progress + 10);
 
-          // Update weekly stats
-          const weeklyStats = currentTeamProgress.weeklyStats;
-          const weekStat = weeklyStats.find((stat) => stat.week === level.week);
-          if (weekStat) {
-            weekStat.points = Math.max(0, weekStat.points - task.points);
-            weekStat.tasksCompleted = Math.max(0, weekStat.tasksCompleted - 1);
-          }
-
-          db.update(teamProgress)
-            .set({
-              totalPoints: newTotalPoints,
-              progress: newProgress,
-              completedTasks: newCompletedTasks,
-              weeklyStats: weeklyStats,
-            })
-            .where(eq(teamProgress.teamId, user.teamId))
-            .run();
-        }
-      } else if (isNowAccepted) {
-        // Create team progress if it doesn't exist and task is accepted
-        db.insert(teamProgress)
-          .values({
-            teamId: user.teamId,
-            totalPoints: task.points,
-            progress: 10,
-            completedTasks: [task.id],
-            unlockedKeys: [],
-            completedWeeks: [],
-            weeklyStats: [
-              {
+            // Update weekly stats
+            const weeklyStats = currentTeamProgress.weeklyStats;
+            const weekStat = weeklyStats.find((stat) => stat.week === level.week);
+            if (weekStat) {
+              weekStat.points += task.points;
+              weekStat.tasksCompleted += 1;
+            } else {
+              weeklyStats.push({
                 week: level.week,
                 points: task.points,
                 tasksCompleted: 1,
-              },
-            ],
-          })
-          .run();
-      }
-    }
+              });
+            }
 
-    // Update user week progress (personal points)
-    const existingUserProgress = db
+            // Check if all tasks for this week are completed
+            const allTasksForLevel = getTasksForLevel(level.id);
+            const allTaskIdsForLevel = allTasksForLevel.map(t => t.id);
+            const allTasksCompleted = allTaskIdsForLevel.every(taskId => newCompletedTasks.includes(taskId));
+
+            // Update unlocked keys if all tasks are completed
+            let updatedUnlockedKeys = currentTeamProgress.unlockedKeys;
+            const weekKey = `week-${level.week}`;
+
+            if (allTasksCompleted && !updatedUnlockedKeys.includes(weekKey)) {
+              updatedUnlockedKeys = [...updatedUnlockedKeys, weekKey];
+            } else if (!allTasksCompleted && updatedUnlockedKeys.includes(weekKey)) {
+              // Remove key if not all tasks are completed anymore
+              updatedUnlockedKeys = updatedUnlockedKeys.filter(key => key !== weekKey);
+            }
+
+            db.update(teamProgress)
+              .set({
+                totalPoints: newTotalPoints,
+                progress: newProgress,
+                completedTasks: newCompletedTasks,
+                weeklyStats: weeklyStats,
+                unlockedKeys: updatedUnlockedKeys,
+              })
+              .where(eq(teamProgress.teamId, user.teamId))
+              .run();
+          } else if (!isNowAccepted && wasCompleted) {
+            // Remove task from completed and remove points
+            const newCompletedTasks = completedTasks.filter(id => id !== task.id);
+            const newTotalPoints = Math.max(0, currentTeamProgress.totalPoints - task.points);
+            const newProgress = Math.max(0, currentTeamProgress.progress - 10);
+
+            // Update weekly stats
+            const weeklyStats = currentTeamProgress.weeklyStats;
+            const weekStat = weeklyStats.find((stat) => stat.week === level.week);
+            if (weekStat) {
+              weekStat.points = Math.max(0, weekStat.points - task.points);
+              weekStat.tasksCompleted = Math.max(0, weekStat.tasksCompleted - 1);
+            }
+
+            // Check if all tasks for this week are still completed
+            const allTasksForLevel = getTasksForLevel(level.id);
+            const allTaskIdsForLevel = allTasksForLevel.map(t => t.id);
+            const allTasksCompleted = allTaskIdsForLevel.every(taskId => newCompletedTasks.includes(taskId));
+
+            // Update unlocked keys
+            let updatedUnlockedKeys = currentTeamProgress.unlockedKeys;
+            const weekKey = `week-${level.week}`;
+
+            if (allTasksCompleted && !updatedUnlockedKeys.includes(weekKey)) {
+              updatedUnlockedKeys = [...updatedUnlockedKeys, weekKey];
+            } else if (!allTasksCompleted && updatedUnlockedKeys.includes(weekKey)) {
+              // Remove key if not all tasks are completed anymore
+              updatedUnlockedKeys = updatedUnlockedKeys.filter(key => key !== weekKey);
+            }
+
+            db.update(teamProgress)
+              .set({
+                totalPoints: newTotalPoints,
+                progress: newProgress,
+                completedTasks: newCompletedTasks,
+                weeklyStats: weeklyStats,
+                unlockedKeys: updatedUnlockedKeys,
+              })
+              .where(eq(teamProgress.teamId, user.teamId))
+              .run();
+          }
+        } else if (isNowAccepted) {
+          // Create team progress if it doesn't exist and task is accepted
+          const completedTasks = [task.id];
+
+          // Check if all tasks for this week are completed
+          const allTasksForLevel = getTasksForLevel(level.id);
+          const allTaskIdsForLevel = allTasksForLevel.map(t => t.id);
+          const allTasksCompleted = allTaskIdsForLevel.every(taskId => completedTasks.includes(taskId));
+
+          // Set unlocked keys if all tasks are completed
+          const unlockedKeys = allTasksCompleted ? [`week-${level.week}`] : [];
+
+          db.insert(teamProgress)
+            .values({
+              teamId: user.teamId,
+              totalPoints: task.points,
+              progress: 10,
+              completedTasks: completedTasks,
+              unlockedKeys: unlockedKeys,
+              completedWeeks: [],
+              weeklyStats: [
+                {
+                  week: level.week,
+                  points: task.points,
+                  tasksCompleted: 1,
+                },
+              ],
+            })
+            .run();
+        }
+      }
+
+      // Update user week progress (personal points)
+      const existingUserProgress = db
         .select()
         .from(userWeekProgress)
         .where(
@@ -330,47 +377,44 @@ export function updateTaskSubmission(
         )
         .get();
 
-    const isNowAccepted = newStatus === "accepted";
-    const wasAccepted = previousStatus === "accepted";
+      if (existingUserProgress) {
+        const completedTasks = existingUserProgress.completedTasks;
+        const wasCompleted = completedTasks.includes(task.id);
 
-    if (existingUserProgress) {
-      const completedTasks = existingUserProgress.completedTasks;
-      const wasCompleted = completedTasks.includes(task.id);
-      
-      if (isNowAccepted && !wasCompleted) {
-        // Add task and points
-        db.update(userWeekProgress)
-          .set({
-            completedTasks: [...completedTasks, task.id],
-            pointsEarned: existingUserProgress.pointsEarned + task.points,
+        if (isNowAccepted && !wasCompleted) {
+          // Add task and points
+          db.update(userWeekProgress)
+            .set({
+              completedTasks: [...completedTasks, task.id],
+              pointsEarned: existingUserProgress.pointsEarned + task.points,
+            })
+            .where(eq(userWeekProgress.id, existingUserProgress.id))
+            .run();
+        } else if (!isNowAccepted && wasCompleted) {
+          // Remove task and points
+          const newCompletedTasks = completedTasks.filter(id => id !== task.id);
+          db.update(userWeekProgress)
+            .set({
+              completedTasks: newCompletedTasks,
+              pointsEarned: Math.max(0, existingUserProgress.pointsEarned - task.points),
+            })
+            .where(eq(userWeekProgress.id, existingUserProgress.id))
+            .run();
+        }
+      } else if (isNowAccepted) {
+        // Create user week progress if it doesn't exist and task is accepted
+        db.insert(userWeekProgress)
+          .values({
+            id: crypto.randomUUID(),
+            userId: submission.userId,
+            iterationId: iteration.id,
+            week: level.week,
+            completedTasks: [task.id],
+            pointsEarned: task.points,
+            isCompleted: false,
           })
-          .where(eq(userWeekProgress.id, existingUserProgress.id))
-          .run();
-      } else if (!isNowAccepted && wasCompleted) {
-        // Remove task and points
-        const newCompletedTasks = completedTasks.filter(id => id !== task.id);
-        db.update(userWeekProgress)
-          .set({
-            completedTasks: newCompletedTasks,
-            pointsEarned: Math.max(0, existingUserProgress.pointsEarned - task.points),
-          })
-          .where(eq(userWeekProgress.id, existingUserProgress.id))
           .run();
       }
-    } else if (isNowAccepted) {
-      // Create user week progress if it doesn't exist and task is accepted
-      db.insert(userWeekProgress)
-        .values({
-          id: crypto.randomUUID(),
-          userId: submission.userId,
-          iterationId: iteration.id,
-          week: level.week,
-          completedTasks: [task.id],
-          pointsEarned: task.points,
-          isCompleted: false,
-        })
-        .run();
-    }
 
       // Log task completion
       logUserAction({
@@ -436,7 +480,7 @@ export function recalculateUserPoints(userId: string) {
 
     const key = `${level.iterationId}-${level.week}`;
     const existing = progressByWeek.get(key);
-    
+
     if (existing) {
       existing.taskIds.add(task.id);
       existing.totalPoints += task.points;
@@ -494,7 +538,7 @@ export function recalculateUserPoints(userId: string) {
  */
 export function recalculateAllUsersPoints() {
   console.log("[Recalculate] Starting recalculation for all users");
-  
+
   // Получаем всех пользователей, у которых есть принятые отправки
   const allAcceptedSubmissions = db
     .select({
@@ -506,7 +550,7 @@ export function recalculateAllUsersPoints() {
 
   // Получаем уникальные ID пользователей
   const uniqueUserIds = [...new Set(allAcceptedSubmissions.map(u => u.userId))];
-  
+
   console.log(`[Recalculate] Found ${uniqueUserIds.length} users with accepted submissions`);
 
   for (const userId of uniqueUserIds) {
@@ -519,5 +563,186 @@ export function recalculateAllUsersPoints() {
 
   console.log("[Recalculate] Completed recalculation for all users");
   return uniqueUserIds.length;
+}
+
+/**
+ * Получить список всех пользователей
+ */
+export function listUsers() {
+  return db.select().from(users).orderBy(desc(users.createdAt)).all();
+}
+
+/**
+ * Получить пользователя по ID
+ */
+export function getUserById(userId: string) {
+  return db.select().from(users).where(eq(users.id, userId)).get();
+}
+
+/**
+ * Создать нового пользователя
+ */
+export function createUser(data: {
+  email: string;
+  name: string;
+  role: "user" | "mod" | "admin";
+  teamId?: string;
+  title?: string;
+  tabNumber?: string;
+  otpCode?: string;
+  status?: "active" | "pending";
+}) {
+  // Проверяем уникальность email
+  const existingUserByEmail = db
+    .select()
+    .from(users)
+    .where(eq(users.email, data.email))
+    .get();
+
+  if (existingUserByEmail) {
+    throw new Error(`Пользователь с email ${data.email} уже существует`);
+  }
+
+  // Генерируем tabNumber и otpCode, если не предоставлены
+  const existingTabNumbers = db
+    .select({ tabNumber: users.tabNumber })
+    .from(users)
+    .all()
+    .map((u) => u.tabNumber);
+
+  const tabNumber = data.tabNumber || generateTabNumber(existingTabNumbers);
+  const otpCode = data.otpCode || generateOtpCode();
+
+  // Проверяем уникальность tabNumber
+  const existingUserByTab = db
+    .select()
+    .from(users)
+    .where(eq(users.tabNumber, tabNumber))
+    .get();
+
+  if (existingUserByTab) {
+    throw new Error(`Пользователь с табельным номером ${tabNumber} уже существует`);
+  }
+
+  const now = new Date();
+  const userId = crypto.randomUUID();
+
+  db.insert(users)
+    .values({
+      id: userId,
+      email: data.email,
+      name: data.name,
+      role: data.role,
+      teamId: data.teamId ?? null,
+      title: data.title ?? null,
+      tabNumber,
+      otpCode,
+      status: data.status || "active",
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run();
+
+  return getUserById(userId);
+}
+
+/**
+ * Обновить пользователя
+ */
+export function updateUser(
+  userId: string,
+  data: {
+    email?: string;
+    name?: string;
+    role?: "user" | "mod" | "admin";
+    teamId?: string;
+    title?: string;
+    tabNumber?: string;
+    otpCode?: string;
+    status?: "active" | "pending";
+  },
+) {
+  const existing = getUserById(userId);
+
+  if (!existing) {
+    return null;
+  }
+
+  // Проверяем уникальность email, если он изменяется
+  if (data.email && data.email !== existing.email) {
+    const existingUserByEmail = db
+      .select()
+      .from(users)
+      .where(eq(users.email, data.email))
+      .get();
+
+    if (existingUserByEmail) {
+      throw new Error(`Пользователь с email ${data.email} уже существует`);
+    }
+  }
+
+  // Проверяем уникальность tabNumber, если он изменяется
+  if (data.tabNumber && data.tabNumber !== existing.tabNumber) {
+    const existingUserByTab = db
+      .select()
+      .from(users)
+      .where(eq(users.tabNumber, data.tabNumber))
+      .get();
+
+    if (existingUserByTab) {
+      throw new Error(`Пользователь с табельным номером ${data.tabNumber} уже существует`);
+    }
+  }
+
+  const updateData: Partial<typeof users.$inferInsert> = {
+    updatedAt: new Date(),
+  };
+
+  if (data.email !== undefined) {
+    updateData.email = data.email;
+  }
+  if (data.name !== undefined) {
+    updateData.name = data.name;
+  }
+  if (data.role !== undefined) {
+    updateData.role = data.role;
+  }
+  if (data.teamId !== undefined) {
+    updateData.teamId = data.teamId || null;
+  }
+  if (data.title !== undefined) {
+    updateData.title = data.title || null;
+  }
+  if (data.tabNumber !== undefined) {
+    updateData.tabNumber = data.tabNumber;
+  }
+  if (data.otpCode !== undefined) {
+    updateData.otpCode = data.otpCode;
+  }
+  if (data.status !== undefined) {
+    updateData.status = data.status;
+  }
+
+  db.update(users)
+    .set(updateData)
+    .where(eq(users.id, userId))
+    .run();
+
+  return getUserById(userId);
+}
+
+/**
+ * Удалить пользователя
+ */
+export function deleteUser(userId: string): boolean {
+  const existing = getUserById(userId);
+
+  if (!existing) {
+    return false;
+  }
+
+  db.delete(users).where(eq(users.id, userId)).run();
+
+  return true;
 }
 

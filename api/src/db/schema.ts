@@ -31,6 +31,7 @@ export const users = sqliteTable(
         tabNumber: text("tab_number").notNull(),
         otpCode: text("otp_code").notNull(),
         status: text("status").default("active"),
+        telegramId: text("telegram_id"),
         createdAt: integer("created_at", { mode: "timestamp" })
             .$defaultFn(() => new Date())
             .notNull(),
@@ -41,6 +42,7 @@ export const users = sqliteTable(
     (table) => ({
         emailIdx: uniqueIndex("users_email_idx").on(table.email),
         tabNumberIdx: uniqueIndex("users_tab_number_idx").on(table.tabNumber),
+        telegramIdIdx: uniqueIndex("users_telegram_id_idx").on(table.telegramId),
     }),
 );
 

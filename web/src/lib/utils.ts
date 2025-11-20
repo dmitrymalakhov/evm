@@ -49,3 +49,95 @@ export function formatTimer(ms: number): string {
   return `${hours}:${minutes}:${seconds}`;
 }
 
+type TeamTitle = {
+  title: string;
+  description: string;
+  minPoints: number;
+};
+
+const TEAM_TITLES: TeamTitle[] = [
+  {
+    title: "Отряд новобранцев",
+    description: "Начальный уровень подготовки",
+    minPoints: 0,
+  },
+  {
+    title: "Звено операторов",
+    description: "Первые шаги в системе",
+    minPoints: 50,
+  },
+  {
+    title: "Группа дешифровщиков",
+    description: "Освоение базовых протоколов",
+    minPoints: 100,
+  },
+  {
+    title: "Сектор аналитики",
+    description: "Специализация в обработке данных",
+    minPoints: 200,
+  },
+  {
+    title: "Отдел киберопераций",
+    description: "Продвинутый уровень взаимодействия",
+    minPoints: 300,
+  },
+  {
+    title: "Бюро специальных задач",
+    description: "Высокий уровень компетенции",
+    minPoints: 500,
+  },
+  {
+    title: "Управление сетевой безопасности",
+    description: "Экспертный уровень защиты",
+    minPoints: 750,
+  },
+  {
+    title: "Центр стратегического планирования",
+    description: "Координация сложных операций",
+    minPoints: 1000,
+  },
+  {
+    title: "Штаб координации",
+    description: "Высшее звено управления",
+    minPoints: 1500,
+  },
+  {
+    title: "Высший совет операторов",
+    description: "Максимальный уровень доступа",
+    minPoints: 2000,
+  },
+  {
+    title: "Элитный отряд Матрицы",
+    description: "Легендарный статус в системе",
+    minPoints: 3000,
+  },
+];
+
+export function getTeamTitle(points: number): TeamTitle {
+  // Находим самый высокий титул, который соответствует баллам
+  let currentTitle = TEAM_TITLES[0];
+  for (const title of TEAM_TITLES) {
+    if (points >= title.minPoints) {
+      currentTitle = title;
+    } else {
+      break;
+    }
+  }
+  return currentTitle;
+}
+
+export function getAllTeamTitles(): TeamTitle[] {
+  return TEAM_TITLES;
+}
+
+export function getNextTeamTitle(points: number): TeamTitle | null {
+  const currentTitle = getTeamTitle(points);
+  const currentIndex = TEAM_TITLES.findIndex(
+    (t) => t.minPoints === currentTitle.minPoints,
+  );
+  if (currentIndex < TEAM_TITLES.length - 1) {
+    return TEAM_TITLES[currentIndex + 1];
+  }
+  return null;
+}
+

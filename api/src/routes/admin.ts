@@ -10,6 +10,11 @@ import {
   updateTaskSubmission,
   recalculateUserPoints,
   recalculateAllUsersPoints,
+  listUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
 } from "../services/admin";
 import {
   listPreCreatedUsers,
@@ -580,9 +585,9 @@ router.post("/recalculate-all-users-points", (request, response) => {
 
     const usersCount = recalculateAllUsersPoints();
 
-    return response.json({ 
+    return response.json({
       message: `Баллы пересчитаны для ${usersCount} пользователей`,
-      usersCount 
+      usersCount
     });
   } catch (error) {
     if (error instanceof Error && error.name === "UnauthorizedError") {
@@ -787,6 +792,216 @@ router.post("/users/pre-created/:userId/activate", (request, response) => {
         error instanceof Error
           ? error.message
           : "Не удалось активировать пользователя",
+    });
+  }
+});
+
+// Эндпоинты для управления пользователями
+
+const userSchema = z.object({
+  email: z.string().email().min(1, "Укажите email"),
+  name: z.string().min(1, "Укажите имя"),
+  role: z.enum(["user", "mod", "admin"]),
+  teamId: z.string().optional(),
+  title: z.string().optional(),
+  tabNumber: z.string().optional(),
+  otpCode: z.string().optional(),
+  status: z.enum(["active", "pending"]).optional(),
+});
+
+const userUpdateSchema = userSchema.partial();
+
+router.get("/users", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const users = listUsers();
+    return response.json(
+      users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        teamId: u.teamId ?? undefined,
+        title: u.title ?? undefined,
+        avatarUrl: u.avatarUrl ?? undefined,
+        tabNumber: u.tabNumber,
+        otpCode: u.otpCode,
+        status: u.status ?? "active",
+        telegramId: u.telegramId ?? undefined,
+        createdAt: u.createdAt.toISOString(),
+        updatedAt: u.updatedAt.toISOString(),
+      })),
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось загрузить пользователей",
+    });
+  }
+});
+
+router.get("/users/:userId", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const foundUser = getUserById(request.params.userId);
+    if (!foundUser) {
+      return response.status(404).json({ message: "Пользователь не найден" });
+    }
+
+    return response.json({
+      id: foundUser.id,
+      email: foundUser.email,
+      name: foundUser.name,
+      role: foundUser.role,
+      teamId: foundUser.teamId ?? undefined,
+      title: foundUser.title ?? undefined,
+      avatarUrl: foundUser.avatarUrl ?? undefined,
+      tabNumber: foundUser.tabNumber,
+      otpCode: foundUser.otpCode,
+      status: foundUser.status ?? "active",
+      telegramId: foundUser.telegramId ?? undefined,
+      createdAt: foundUser.createdAt.toISOString(),
+      updatedAt: foundUser.updatedAt.toISOString(),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось загрузить пользователя",
+    });
+  }
+});
+
+router.post("/users", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const payload = userSchema.parse(request.body);
+    const created = createUser(payload);
+
+    if (!created) {
+      return response.status(500).json({ message: "Не удалось создать пользователя" });
+    }
+
+    return response.status(201).json({
+      id: created.id,
+      email: created.email,
+      name: created.name,
+      role: created.role,
+      teamId: created.teamId ?? undefined,
+      title: created.title ?? undefined,
+      avatarUrl: created.avatarUrl ?? undefined,
+      tabNumber: created.tabNumber,
+      otpCode: created.otpCode,
+      status: created.status ?? "active",
+      telegramId: created.telegramId ?? undefined,
+      createdAt: created.createdAt.toISOString(),
+      updatedAt: created.updatedAt.toISOString(),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return response.status(422).json({ message: error.issues[0].message });
+    }
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось создать пользователя",
+    });
+  }
+});
+
+router.put("/users/:userId", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const payload = userUpdateSchema.parse(request.body);
+    const updated = updateUser(request.params.userId, payload);
+
+    if (!updated) {
+      return response.status(404).json({ message: "Пользователь не найден" });
+    }
+
+    return response.json({
+      id: updated.id,
+      email: updated.email,
+      name: updated.name,
+      role: updated.role,
+      teamId: updated.teamId ?? undefined,
+      title: updated.title ?? undefined,
+      avatarUrl: updated.avatarUrl ?? undefined,
+      tabNumber: updated.tabNumber,
+      otpCode: updated.otpCode,
+      status: updated.status ?? "active",
+      telegramId: updated.telegramId ?? undefined,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return response.status(422).json({ message: error.issues[0].message });
+    }
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось обновить пользователя",
+    });
+  }
+});
+
+router.delete("/users/:userId", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const deleted = deleteUser(request.params.userId);
+
+    if (!deleted) {
+      return response.status(404).json({ message: "Пользователь не найден" });
+    }
+
+    return response.status(204).send();
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось удалить пользователя",
     });
   }
 });

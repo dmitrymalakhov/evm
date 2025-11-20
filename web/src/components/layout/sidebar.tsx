@@ -65,7 +65,7 @@ export function Sidebar() {
             </Link>
           );
         })}
-        {(user?.role === "admin" || featureFlags.admin) && (
+        {user?.role === "admin" && (
           <Link
             href="/admin"
             className={cn(

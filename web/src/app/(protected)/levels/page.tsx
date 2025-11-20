@@ -27,19 +27,21 @@ export default function LevelsPage() {
       if (hasRedirected.current) return;
 
       try {
+        console.log("[LevelsPage] Loading level for user:", user?.id, "teamId:", user?.teamId);
         await loadLevel({ teamId: user?.teamId });
       } catch (error) {
-        console.error("Failed to load level:", error);
+        console.error("[LevelsPage] Failed to load level:", error);
         setErrorMessage(
           error instanceof Error ? error.message : "Не удалось загрузить активную неделю"
         );
       }
     }
-    if (user?.teamId) {
+    // Load level even if user doesn't have teamId - it's not required for getting current level
+    if (user) {
       void loadAndRedirect();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.teamId]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (currentLevel?.week && !hasRedirected.current && !isLoading) {
@@ -63,6 +65,11 @@ export default function LevelsPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-evm-accent mb-2">
             Активные задания недоступны
           </p>
+          {(error || errorMessage) && (
+            <p className="text-xs text-evm-muted mt-2">
+              {error || errorMessage}
+            </p>
+          )}
         </ConsoleFrame>
       </div>
     );

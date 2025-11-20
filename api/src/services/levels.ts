@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, gt, lte } from "drizzle-orm";
+import { and, desc, eq, gte, gt, isNull, lte } from "drizzle-orm";
 
 import { db } from "../db/client";
 import { iterations, levels, tasks } from "../db/schema";
@@ -27,6 +27,7 @@ export function getActiveIteration() {
   // First, try to find an iteration that has a level matching its currentWeek
   // This ensures that when admin sets an active week, that iteration is used
   for (const iter of allIterations) {
+    // Check for levels with matching iterationId and week
     const matchingLevel = db
       .select()
       .from(levels)
@@ -43,9 +44,29 @@ export function getActiveIteration() {
     }
   }
 
-  // Fallback: if no iteration has a matching level, return the most recent one
-  // This handles the case where levels haven't been created yet
-  return allIterations[0] ?? null;
+  // Fallback: check for levels with null iterationId that match any iteration's currentWeek
+  // This handles cases where levels were created without iterationId
+  for (const iter of allIterations) {
+    const levelWithNullIteration = db
+      .select()
+      .from(levels)
+      .where(
+        and(
+          isNull(levels.iterationId),
+          eq(levels.week, iter.currentWeek),
+        ),
+      )
+      .get();
+    
+    if (levelWithNullIteration) {
+      return iter;
+    }
+  }
+
+  // Fallback: if no iteration has a matching level, return null
+  // This prevents returning an iteration without a corresponding level
+  // which would cause "no tasks available" errors for users
+  return null;
 }
 
 export function getIterationById(iterationId: string) {
@@ -62,12 +83,30 @@ export function getCurrentLevel() {
     return null;
   }
 
-  return db
+  // First, try to find a level with matching iterationId and week
+  const levelWithIteration = db
     .select()
     .from(levels)
     .where(
       and(
         eq(levels.iterationId, iteration.id),
+        eq(levels.week, iteration.currentWeek),
+      ),
+    )
+    .get();
+
+  if (levelWithIteration) {
+    return levelWithIteration;
+  }
+
+  // Fallback: check for levels with null iterationId that match the week
+  // This handles cases where levels were created without iterationId
+  return db
+    .select()
+    .from(levels)
+    .where(
+      and(
+        isNull(levels.iterationId),
         eq(levels.week, iteration.currentWeek),
       ),
     )
@@ -87,12 +126,30 @@ export function getLevelByWeek(week: number, iterationId?: string) {
     return null;
   }
 
-  return db
+  // First, try to find a level with matching iterationId and week
+  const levelWithIteration = db
     .select()
     .from(levels)
     .where(
       and(
         eq(levels.iterationId, iteration.id),
+        eq(levels.week, week),
+      ),
+    )
+    .get();
+
+  if (levelWithIteration) {
+    return levelWithIteration;
+  }
+
+  // Fallback: check for levels with null iterationId that match the week
+  // This handles cases where levels were created without iterationId
+  return db
+    .select()
+    .from(levels)
+    .where(
+      and(
+        isNull(levels.iterationId),
         eq(levels.week, week),
       ),
     )
