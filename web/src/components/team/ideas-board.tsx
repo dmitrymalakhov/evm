@@ -12,14 +12,18 @@ import { useTeamStore } from "@/store/use-team-store";
 import { useSessionStore } from "@/store/use-session-store";
 import { formatRelative } from "@/lib/utils";
 
-export function IdeasBoard() {
+type IdeasBoardProps = {
+  alwaysExpanded?: boolean;
+};
+
+export function IdeasBoard({ alwaysExpanded = false }: IdeasBoardProps) {
   const { ideas, createIdea, hydrate, voteIdea, teamId } = useTeamStore();
   const { user } = useSessionStore();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(alwaysExpanded);
 
   useEffect(() => {
     if (user?.teamId && !teamId) {
@@ -67,41 +71,62 @@ export function IdeasBoard() {
     }
   }
 
+  // Синхронизируем состояние с пропом alwaysExpanded
+  useEffect(() => {
+    if (alwaysExpanded) {
+      setIsExpanded(true);
+    }
+  }, [alwaysExpanded]);
+
   return (
     <div className="rounded-md border border-evm-steel/40 bg-black/40">
-      <button
-        type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full p-4 text-left transition-colors hover:bg-black/20"
-      >
-        <div className="flex items-center justify-between">
+      {!alwaysExpanded && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full p-4 text-left transition-colors hover:bg-black/20"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-[0.24em]">
+                Доска идей
+              </h3>
+              <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
+                {isExpanded
+                  ? "Дополняйте инициативы и голосуйте"
+                  : `${ideas.length} ${ideas.length === 1 ? "идея" : ideas.length < 5 ? "идеи" : "идей"}`}
+              </p>
+            </div>
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 text-evm-muted" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-evm-muted" />
+            )}
+          </div>
+        </button>
+      )}
+      {alwaysExpanded && (
+        <div className="p-4">
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-[0.24em]">
               Доска идей
             </h3>
             <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
-              {isExpanded
-                ? "Дополняйте инициативы и голосуйте"
-                : `${ideas.length} ${ideas.length === 1 ? "идея" : ideas.length < 5 ? "идеи" : "идей"}`}
+              Дополняйте инициативы и голосуйте
             </p>
           </div>
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-evm-muted" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-evm-muted" />
-          )}
         </div>
-      </button>
+      )}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
+            initial={alwaysExpanded ? false : { height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="space-y-4 border-t border-evm-steel/40 p-4">
+            <div className={`space-y-4 ${!alwaysExpanded ? "border-t border-evm-steel/40" : ""} p-4`}>
               <form onSubmit={handleCreate} className="space-y-3">
                 <Input
                   value={title}

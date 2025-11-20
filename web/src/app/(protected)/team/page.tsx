@@ -11,11 +11,15 @@ import { ProgressBar } from "@/components/progress-bar";
 import { ConsoleFrame } from "@/components/ui/console-frame";
 import { Button } from "@/components/ui/button";
 import { getTeamTitle } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+
+type TabType = "chat" | "ideas";
 
 export default function TeamPage() {
   const { user } = useSessionStore();
-  const { hydrate, team, progress, refreshProgress } = useTeamStore();
+  const { hydrate, team, progress, refreshProgress, ideas } = useTeamStore();
   const [isTitlesModalOpen, setIsTitlesModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>("chat");
 
   const teamTitle = useMemo(() => {
     const points = progress?.totalPoints ?? 0;
@@ -93,10 +97,49 @@ export default function TeamPage() {
           Командные баллы: {progress?.totalPoints ?? 0}
         </p>
       </ConsoleFrame>
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <ChatPanel />
-        <IdeasBoard />
+      
+      {/* Табы для переключения между чатом и идеями */}
+      <div className="flex gap-2 border-b border-evm-steel/40">
+        <button
+          type="button"
+          onClick={() => setActiveTab("chat")}
+          className={cn(
+            "px-4 py-3 text-sm font-semibold uppercase tracking-[0.24em] transition-colors border-b-2",
+            activeTab === "chat"
+              ? "border-evm-accent text-evm-accent"
+              : "border-transparent text-evm-muted hover:text-foreground"
+          )}
+        >
+          Мини-чат команды
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("ideas")}
+          className={cn(
+            "px-4 py-3 text-sm font-semibold uppercase tracking-[0.24em] transition-colors border-b-2 relative",
+            activeTab === "ideas"
+              ? "border-evm-accent text-evm-accent"
+              : "border-transparent text-evm-muted hover:text-foreground"
+          )}
+        >
+          Доска идей
+          {ideas.length > 0 && (
+            <span className="ml-2 text-xs">
+              ({ideas.length})
+            </span>
+          )}
+        </button>
       </div>
+
+      {/* Контент активной вкладки */}
+      <div className="min-h-[500px]">
+        {activeTab === "chat" ? (
+          <ChatPanel />
+        ) : (
+          <IdeasBoard alwaysExpanded />
+        )}
+      </div>
+
       <TeamTitlesModal
         isOpen={isTitlesModalOpen}
         onClose={() => setIsTitlesModalOpen(false)}

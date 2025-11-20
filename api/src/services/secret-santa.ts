@@ -174,19 +174,32 @@ export function drawSecretSantaRecipient(userId: string) {
       throw new SecretSantaError("already_matched");
     }
 
-    // Get candidates who haven't been matched yet
-    const candidates = tx
+    // Get all participants to check availability
+    const allParticipants = tx
       .select({
         userId: secretSantaParticipants.userId,
+        matchedUserId: secretSantaParticipants.matchedUserId,
       })
       .from(secretSantaParticipants)
-      .where(
-        and(
-          ne(secretSantaParticipants.userId, userId),
-          eq(secretSantaParticipants.matchedUserId, null),
-        ),
-      )
       .all();
+
+    // Get IDs of users who have already been selected by someone
+    const selectedUserIds = new Set(
+      allParticipants
+        .filter((p) => p.matchedUserId !== null)
+        .map((p) => p.matchedUserId!),
+    );
+
+    // Get candidates who:
+    // 1. Are not the current user
+    // 2. Haven't selected anyone yet (matchedUserId is null)
+    // 3. Haven't been selected by anyone else yet
+    const candidates = allParticipants.filter(
+      (p) =>
+        p.userId !== userId &&
+        p.matchedUserId === null &&
+        !selectedUserIds.has(p.userId),
+    );
 
     if (candidates.length === 0) {
       throw new SecretSantaError("no_candidates");

@@ -751,6 +751,26 @@ export const api = {
     request<null>(`/admin/users/${userId}`, {
       method: "DELETE",
     }),
+
+  // Thoughts management
+  getAdminThoughts: () => request<Thought[]>("/admin/thoughts"),
+
+  createAdminThought: (text: string) =>
+    request<Thought>("/admin/thoughts", {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
+
+  updateAdminThought: (thoughtId: string, text: string) =>
+    request<Thought>(`/admin/thoughts/${thoughtId}`, {
+      method: "PUT",
+      body: JSON.stringify({ text }),
+    }),
+
+  deleteAdminThought: (thoughtId: string) =>
+    request<null>(`/admin/thoughts/${thoughtId}`, {
+      method: "DELETE",
+    }),
 };
 
 export const authSession = {

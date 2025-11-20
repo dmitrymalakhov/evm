@@ -17,6 +17,12 @@ import {
   deleteUser,
 } from "../services/admin";
 import {
+  createThought,
+  updateThought,
+  deleteThought,
+  getThoughtFeed,
+} from "../services/feed";
+import {
   listPreCreatedUsers,
   createPreCreatedUser,
   updatePreCreatedUser,
@@ -1002,6 +1008,116 @@ router.delete("/users/:userId", (request, response) => {
         error instanceof Error
           ? error.message
           : "Не удалось удалить пользователя",
+    });
+  }
+});
+
+// Thoughts management
+router.get("/thoughts", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const feed = getThoughtFeed();
+    return response.json(feed.thoughts);
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось загрузить мысли",
+    });
+  }
+});
+
+router.post("/thoughts", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const thoughtSchema = z.object({
+      text: z.string().min(1, "Текст мысли не может быть пустым"),
+    });
+
+    const payload = thoughtSchema.parse(request.body);
+    const thought = createThought(payload.text.trim());
+    return response.status(201).json(thought);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return response.status(422).json({ message: error.issues[0].message });
+    }
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось создать мысль",
+    });
+  }
+});
+
+router.put("/thoughts/:thoughtId", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    const thoughtSchema = z.object({
+      text: z.string().min(1, "Текст мысли не может быть пустым"),
+    });
+
+    const payload = thoughtSchema.parse(request.body);
+    const updated = updateThought(request.params.thoughtId, payload.text.trim());
+
+    if (!updated) {
+      return response.status(404).json({ message: "Мысль не найдена" });
+    }
+
+    return response.json(updated);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return response.status(422).json({ message: error.issues[0].message });
+    }
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось обновить мысль",
+    });
+  }
+});
+
+router.delete("/thoughts/:thoughtId", (request, response) => {
+  try {
+    const user = getRequestUser(request, true);
+    if (!user || user.role !== "admin") {
+      return response.status(403).json({ message: "Требуются права администратора" });
+    }
+
+    deleteThought(request.params.thoughtId);
+    return response.status(204).send();
+  } catch (error) {
+    if (error instanceof Error && error.name === "UnauthorizedError") {
+      return response.status(401).json({ message: error.message });
+    }
+    return response.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось удалить мысль",
     });
   }
 });

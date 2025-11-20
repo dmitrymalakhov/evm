@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Gift, HeartHandshake, Shuffle, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConsoleFrame } from "@/components/ui/console-frame";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Timer } from "@/components/timer";
 import { cn } from "@/lib/utils";
@@ -61,14 +60,10 @@ export default function SecretSantaPage() {
   const { user } = useSessionStore();
   const [santaState, setSantaState] = useState<SecretSantaState | null>(null);
   const [wishlistDraft, setWishlistDraft] = useState("");
-  const [giftIdea, setGiftIdea] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [isReminderSaving, setIsReminderSaving] = useState(false);
   const [isDrawingAll, setIsDrawingAll] = useState(false);
-  const reminderSnapshot = useRef("");
   const isAdmin = user?.role === "admin";
 
   const participants = santaState?.participants ?? [];
@@ -100,36 +95,10 @@ export default function SecretSantaPage() {
 
   useEffect(() => {
     if (!currentParticipant) {
-      reminderSnapshot.current = "";
       return;
     }
     setWishlistDraft(currentParticipant.wishlist);
-    const note = currentParticipant.reminderNote ?? "";
-    reminderSnapshot.current = note;
-    setGiftIdea(note);
   }, [currentParticipant]);
-
-  useEffect(() => {
-    if (!currentParticipant) return;
-    if (giftIdea === reminderSnapshot.current) return;
-
-    const timeout = setTimeout(async () => {
-      try {
-        setIsReminderSaving(true);
-        const data = await api.updateSecretSantaReminder(giftIdea);
-        reminderSnapshot.current = giftIdea;
-        setSantaState(data);
-      } catch (error) {
-        toast.error("Не удалось сохранить напоминание", {
-          description: errorDescription(error),
-        });
-      } finally {
-        setIsReminderSaving(false);
-      }
-    }, 600);
-
-    return () => clearTimeout(timeout);
-  }, [currentParticipant, giftIdea]);
 
   const handleJoin = async () => {
     if (!user) {
@@ -145,7 +114,6 @@ export default function SecretSantaPage() {
       setIsSubmitting(true);
       const data = await api.registerSecretSanta({
         wishlist: wishlistDraft.trim(),
-        reminderNote: giftIdea,
       });
       setSantaState(data);
       toast.success("Вы в игре Тайного Санты!");
@@ -186,32 +154,6 @@ export default function SecretSantaPage() {
       });
     } finally {
       setIsDrawing(false);
-    }
-  };
-
-  const handleGiftSent = async () => {
-    if (!user) {
-      toast.error("Нужно авторизоваться.");
-      return;
-    }
-    if (!matchId) {
-      toast.error("Сначала вытяните получателя.");
-      return;
-    }
-
-    try {
-      setIsUpdatingStatus(true);
-      const data = await api.markSecretSantaGifted();
-      setSantaState(data);
-      toast.success("Статус обновлён", {
-        description: "Отметили подарок как отправленный.",
-      });
-    } catch (error) {
-      toast.error("Не удалось обновить статус", {
-        description: errorDescription(error),
-      });
-    } finally {
-      setIsUpdatingStatus(false);
     }
   };
 
@@ -280,68 +222,34 @@ export default function SecretSantaPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <ConsoleFrame className="space-y-6 p-6">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-evm-accent" />
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
-                Как всё работает
-              </p>
-              <p className="text-base font-semibold uppercase tracking-[0.18em]">
-                Три шага к идеальному подарку
-              </p>
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {SECRET_SANTA_PHASES.map((phase) => (
-              <div
-                key={phase.title}
-                className={cn(
-                  "rounded-lg border border-white/15 bg-white/5 p-5 text-sm transition-all space-y-2",
-                  phase.status === "active" ? "border-evm-accent/60 bg-evm-accent/10" : "",
-                )}
-              >
-                <p className="text-xs uppercase tracking-[0.28em] text-evm-muted">{phase.title}</p>
-                <p className="text-foreground/90 leading-relaxed">{phase.description}</p>
-              </div>
-            ))}
-          </div>
-          <div className="rounded-md border border-evm-accent/30 bg-evm-accent/5 p-5 space-y-3">
-            <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
-              До мероприятия
-            </p>
-            <Timer target={EVENT_DATE.toISOString()} label="18 декабря 2025" />
-          </div>
-        </ConsoleFrame>
-
-        <ConsoleFrame className="space-y-5 p-6">
-          <div className="flex items-center gap-3">
-            <Gift className="h-5 w-5 text-evm-matrix" />
+      <ConsoleFrame className="p-4 space-y-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Gift className="h-4 w-4 text-evm-matrix" />
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
                 Командный барометр
               </p>
-              <p className="text-base font-semibold uppercase tracking-[0.18em]">Статистика игры</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em]">Статистика игры</p>
             </div>
           </div>
-          <div className="grid gap-5 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <p className="text-3xl font-semibold">{participants.length}</p>
+          <div className="flex items-center gap-6">
+            <div className="text-center">
+              <p className="text-2xl font-semibold">{participants.length}</p>
               <p className="text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
                 Участников
               </p>
             </div>
-            <div className="space-y-1.5">
-              <p className="text-3xl font-semibold text-evm-matrix">
+            <div className="text-center">
+              <p className="text-2xl font-semibold text-evm-matrix">
                 {participants.filter((participant) => participant.status !== "waiting").length}
               </p>
               <p className="text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
                 Уже вытянули
               </p>
             </div>
-            <div className="space-y-1.5">
-              <p className="text-3xl font-semibold text-evm-accent">
+            <div className="text-center">
+              <p className="text-2xl font-semibold text-evm-accent">
                 {participants.filter((participant) => participant.status === "gifted").length}
               </p>
               <p className="text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
@@ -349,8 +257,42 @@ export default function SecretSantaPage() {
               </p>
             </div>
           </div>
-        </ConsoleFrame>
-      </div>
+        </div>
+
+        <div className="border-t border-white/10 pt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-4 w-4 text-evm-accent" />
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
+                Как всё работает
+              </p>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em]">
+                Три шага к идеальному подарку
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3 mb-4">
+            {SECRET_SANTA_PHASES.map((phase) => (
+              <div
+                key={phase.title}
+                className={cn(
+                  "rounded-lg border border-white/15 bg-white/5 p-3 text-sm transition-all space-y-1.5",
+                  phase.status === "active" ? "border-evm-accent/60 bg-evm-accent/10" : "",
+                )}
+              >
+                <p className="text-xs uppercase tracking-[0.28em] text-evm-muted">{phase.title}</p>
+                <p className="text-xs leading-relaxed text-foreground/90">{phase.description}</p>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-md border border-evm-accent/30 bg-evm-accent/5 p-3 space-y-2">
+            <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
+              До мероприятия
+            </p>
+            <Timer target={EVENT_DATE.toISOString()} label="18 декабря 2025" />
+          </div>
+        </div>
+      </ConsoleFrame>
 
       <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
         <ConsoleFrame className="space-y-6 p-6">
@@ -376,17 +318,6 @@ export default function SecretSantaPage() {
             />
           </div>
 
-          <div className="space-y-2.5">
-            <label className="text-xs uppercase tracking-[0.24em] text-evm-muted">
-              Напоминание для подарка
-            </label>
-            <Input
-              placeholder="Например: «Купить до 17 декабря и подписать открытку»"
-              value={giftIdea}
-              onChange={(event) => setGiftIdea(event.target.value)}
-            />
-          </div>
-
           <div className="flex flex-wrap gap-3 pt-2">
             <Button onClick={handleJoin}>Участвовать</Button>
             <Button
@@ -395,13 +326,6 @@ export default function SecretSantaPage() {
               disabled={isDrawing || !isRegistered || Boolean(matchId)}
             >
               {isDrawing ? "Жеребьевка..." : "Вытянуть имя"}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleGiftSent}
-              disabled={!matchId || currentParticipant?.status === "gifted"}
-            >
-              Отметить подарок
             </Button>
           </div>
           {!isRegistered && (
@@ -438,14 +362,6 @@ export default function SecretSantaPage() {
                 <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">Пожелания</p>
                 <p className="text-sm leading-relaxed text-foreground/90">
                   {matchedRecipient.wishlist}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
-                  Твоё напоминание
-                </p>
-                <p className="text-sm leading-relaxed text-foreground/80">
-                  {giftIdea.trim() ? giftIdea : "Добавь заметку, чтобы ничего не забыть."}
                 </p>
               </div>
             </div>

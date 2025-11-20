@@ -25,6 +25,20 @@ export function createThought(text: string) {
   return entry;
 }
 
+export function updateThought(id: string, text: string) {
+  const updated = db
+    .update(thoughts)
+    .set({ text })
+    .where(eq(thoughts.id, id))
+    .returning()
+    .get();
+  return updated;
+}
+
+export function deleteThought(id: string) {
+  db.delete(thoughts).where(eq(thoughts.id, id)).run();
+}
+
 export function createComment(payload: {
   entityType: "task" | "feed" | "idea";
   entityId: string;

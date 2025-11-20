@@ -23,6 +23,8 @@ import type {
   SecretSantaState,
   SecretSantaAdminState,
   PreCreatedUser,
+  Comment,
+  Thought,
 } from "@/types/contracts";
 import { cn } from "@/lib/utils";
 
@@ -122,7 +124,7 @@ type TaskSubmission = {
 };
 
 type LevelWithIteration = Level & { iterationId?: string };
-type AdminTabId = "levels" | "submissions" | "metrics" | "analytics" | "secret-santa" | "users";
+type AdminTabId = "levels" | "submissions" | "metrics" | "analytics" | "secret-santa" | "users" | "feed";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -220,6 +222,21 @@ export default function AdminPage() {
     message: "",
   });
 
+  // Feed news form state
+  const [showFeedForm, setShowFeedForm] = useState(false);
+  const [feedForm, setFeedForm] = useState({
+    body: "",
+  });
+  const [feedComments, setFeedComments] = useState<Comment[]>([]);
+
+  // Thoughts form state
+  const [showThoughtForm, setShowThoughtForm] = useState(false);
+  const [editingThought, setEditingThought] = useState<Thought | null>(null);
+  const [thoughtForm, setThoughtForm] = useState({
+    text: "",
+  });
+  const [thoughts, setThoughts] = useState<Thought[]>([]);
+
   const loadSubmissions = useCallback(async () => {
     try {
       const submissionsResponse = await api.getAdminSubmissions();
@@ -284,6 +301,112 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadFeedComments = useCallback(async () => {
+    try {
+      const feed = await api.getFeed();
+      // Фильтруем только комментарии с entityType === "feed"
+      const feedCommentsList = feed.comments.filter(
+        (comment) => comment.entityType === "feed"
+      );
+      setFeedComments(feedCommentsList);
+    } catch (error) {
+      toast.error("Не удалось загрузить новости", {
+        description: error instanceof Error ? error.message : "Ошибка загрузки",
+      });
+      setFeedComments([]);
+    }
+  }, []);
+
+  const loadThoughts = useCallback(async () => {
+    try {
+      const thoughtsList = await api.getAdminThoughts();
+      setThoughts(thoughtsList);
+    } catch (error) {
+      toast.error("Не удалось загрузить мысли", {
+        description: error instanceof Error ? error.message : "Ошибка загрузки",
+      });
+      setThoughts([]);
+    }
+  }, []);
+
+  const handleCreateFeedNews = async () => {
+    if (!feedForm.body.trim()) {
+      toast.error("Текст новости не может быть пустым");
+      return;
+    }
+
+    try {
+      await api.postComment({
+        entityType: "feed",
+        entityId: "feed", // Используем фиксированный ID для новостей в feed
+        body: feedForm.body,
+      });
+      toast.success("Новость добавлена");
+      setFeedForm({ body: "" });
+      setShowFeedForm(false);
+      await loadFeedComments();
+    } catch (error) {
+      toast.error("Не удалось добавить новость", {
+        description:
+          error instanceof Error ? error.message : "Ошибка создания",
+      });
+    }
+  };
+
+  const handleCreateThought = () => {
+    setEditingThought(null);
+    setThoughtForm({ text: "" });
+    setShowThoughtForm(true);
+  };
+
+  const handleEditThought = (thought: Thought) => {
+    setEditingThought(thought);
+    setThoughtForm({ text: thought.text });
+    setShowThoughtForm(true);
+  };
+
+  const handleSaveThought = async () => {
+    if (!thoughtForm.text.trim()) {
+      toast.error("Текст мысли не может быть пустым");
+      return;
+    }
+
+    try {
+      if (editingThought) {
+        await api.updateAdminThought(editingThought.id, thoughtForm.text.trim());
+        toast.success("Мысль обновлена");
+      } else {
+        await api.createAdminThought(thoughtForm.text.trim());
+        toast.success("Мысль добавлена");
+      }
+      setShowThoughtForm(false);
+      setThoughtForm({ text: "" });
+      await loadThoughts();
+    } catch (error) {
+      toast.error(editingThought ? "Не удалось обновить мысль" : "Не удалось добавить мысль", {
+        description:
+          error instanceof Error ? error.message : "Ошибка сохранения",
+      });
+    }
+  };
+
+  const handleDeleteThought = async (thoughtId: string) => {
+    if (!confirm("Вы уверены, что хотите удалить эту мысль?")) {
+      return;
+    }
+
+    try {
+      await api.deleteAdminThought(thoughtId);
+      toast.success("Мысль удалена");
+      await loadThoughts();
+    } catch (error) {
+      toast.error("Не удалось удалить мысль", {
+        description:
+          error instanceof Error ? error.message : "Ошибка удаления",
+      });
+    }
+  };
+
   // Проверка прав доступа
   useEffect(() => {
     if (hasHydrated && user && user.role !== "admin") {
@@ -347,6 +470,12 @@ export default function AdminPage() {
         if (activeTab === "users") {
           await loadPreCreatedUsers();
         }
+
+        // Load feed comments and thoughts if tab is active
+        if (activeTab === "feed") {
+          await loadFeedComments();
+          await loadThoughts();
+        }
       } catch (error) {
         if (!isMounted) return;
         toast.error("Не удалось загрузить панель администратора", {
@@ -364,7 +493,7 @@ export default function AdminPage() {
     return () => {
       isMounted = false;
     };
-  }, [loadSubmissions, activeTab, loadSecretSanta]);
+  }, [loadSubmissions, activeTab, loadSecretSanta, loadFeedComments, loadThoughts]);
 
   // Reload submissions when page becomes visible (user returns to tab)
   useEffect(() => {
@@ -622,6 +751,13 @@ export default function AdminPage() {
     }
   }, [activeTab, loadAllUsers, loadPreCreatedUsers]);
 
+  useEffect(() => {
+    if (activeTab === "feed") {
+      void loadFeedComments();
+      void loadThoughts();
+    }
+  }, [activeTab, loadFeedComments, loadThoughts]);
+
   const handleCreateUser = () => {
     setEditingUser(null);
     setUserForm({
@@ -789,6 +925,12 @@ export default function AdminPage() {
           description: "Управление всеми пользователями",
           badge: allUsers.length,
         },
+        {
+          id: "feed" as const,
+          label: "Лента",
+          description: "Новости и канал связи",
+          badge: feedComments.length + thoughts.length,
+        },
       ] satisfies Array<{
         id: AdminTabId;
         label: string;
@@ -796,7 +938,7 @@ export default function AdminPage() {
         badge?: number;
         disabled?: boolean;
       }>,
-    [levels.length, submissions.length, pendingSubmissionCount, metrics, secretSantaState, allUsers.length]
+    [levels.length, submissions.length, pendingSubmissionCount, metrics, secretSantaState, allUsers.length, feedComments.length]
   );
 
   if (isLoading || !hasHydrated) {
@@ -1832,6 +1974,118 @@ export default function AdminPage() {
           </div>
         )}
 
+        {activeTab === "feed" && (
+          <div className="space-y-4">
+            {/* Thoughts Management */}
+            <Card>
+              <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <CardTitle>Канал связи с операторами сети E.V.M.</CardTitle>
+                  <p className="text-xs uppercase tracking-[0.22em] text-evm-muted">
+                    Управление мыслями, отображаемыми в тикере на странице /feed
+                  </p>
+                </div>
+                <Button onClick={handleCreateThought}>Добавить мысль</Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {thoughts.length === 0 ? (
+                  <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
+                    Мыслей пока нет. Создайте первую мысль.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {thoughts.map((thought) => (
+                      <div
+                        key={thought.id}
+                        className="rounded-md border border-evm-steel/40 bg-black/40 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                              {thought.text}
+                            </p>
+                            <p className="mt-2 text-xs uppercase tracking-[0.16em] text-evm-muted">
+                              {new Date(thought.createdAt).toLocaleString("ru-RU", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditThought(thought)}
+                            >
+                              Редактировать
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteThought(thought.id)}
+                            >
+                              Удалить
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Feed News Management */}
+            <Card>
+              <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <CardTitle>Новости в ленте</CardTitle>
+                  <p className="text-xs uppercase tracking-[0.22em] text-evm-muted">
+                    Управление новостями, отображаемыми в ленте на странице /feed
+                  </p>
+                </div>
+                <Button onClick={() => setShowFeedForm(true)}>Добавить новость</Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {feedComments.length === 0 ? (
+                  <p className="text-xs uppercase tracking-[0.2em] text-evm-muted">
+                    Новостей пока нет. Создайте первую новость.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {feedComments.map((comment) => (
+                      <div
+                        key={comment.id}
+                        className="rounded-md border border-evm-steel/40 bg-black/40 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                              {comment.body}
+                            </p>
+                            <p className="mt-2 text-xs uppercase tracking-[0.16em] text-evm-muted">
+                              {new Date(comment.createdAt).toLocaleString("ru-RU", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
       </ConsoleFrame>
 
       {/* Level Form Modal */}
@@ -2545,6 +2799,113 @@ export default function AdminPage() {
                 Отмена
               </Button>
               <Button onClick={handleSaveUser}>Сохранить</Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Feed News Form Modal */}
+      {showFeedForm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowFeedForm(false);
+            }
+          }}
+        >
+          <Card
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="flex-shrink-0">
+              <CardTitle>Добавить новость</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 overflow-y-auto flex-1 min-h-0">
+              <div className="space-y-2">
+                <Label htmlFor="feedBody">Текст новости</Label>
+                <Textarea
+                  id="feedBody"
+                  value={feedForm.body}
+                  onChange={(e) =>
+                    setFeedForm({ ...feedForm, body: e.target.value })
+                  }
+                  placeholder="Введите текст новости, которая будет отображаться в ленте..."
+                  rows={8}
+                  className="resize-none"
+                />
+                <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                  Новость будет отображена в ленте на странице /feed
+                </p>
+              </div>
+            </CardContent>
+            <div className="flex justify-end gap-2 p-6 border-t border-evm-steel/20 flex-shrink-0">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowFeedForm(false);
+                  setFeedForm({ body: "" });
+                }}
+              >
+                Отмена
+              </Button>
+              <Button onClick={handleCreateFeedNews}>Опубликовать</Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Thought Form Modal */}
+      {showThoughtForm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowThoughtForm(false);
+            }
+          }}
+        >
+          <Card
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="flex-shrink-0">
+              <CardTitle>
+                {editingThought ? "Редактировать мысль" : "Добавить мысль"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 overflow-y-auto flex-1 min-h-0">
+              <div className="space-y-2">
+                <Label htmlFor="thoughtText">Текст мысли</Label>
+                <Textarea
+                  id="thoughtText"
+                  value={thoughtForm.text}
+                  onChange={(e) =>
+                    setThoughtForm({ ...thoughtForm, text: e.target.value })
+                  }
+                  placeholder="Введите текст мысли, которая будет отображаться в тикере 'Канал связи с операторами сети E.V.M.'..."
+                  rows={6}
+                  className="resize-none"
+                />
+                <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                  Мысль будет отображена в тикере на странице /feed
+                </p>
+              </div>
+            </CardContent>
+            <div className="flex justify-end gap-2 p-6 border-t border-evm-steel/20 flex-shrink-0">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowThoughtForm(false);
+                  setThoughtForm({ text: "" });
+                  setEditingThought(null);
+                }}
+              >
+                Отмена
+              </Button>
+              <Button onClick={handleSaveThought}>
+                {editingThought ? "Сохранить" : "Добавить"}
+              </Button>
             </div>
           </Card>
         </div>
