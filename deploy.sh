@@ -76,10 +76,24 @@ info "SSH подключение установлено"
 
 # Проверка наличия Docker и Docker Compose на сервере
 info "Проверка наличия Docker и Docker Compose..."
-if ! ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "command -v docker > /dev/null 2>&1 && command -v docker-compose > /dev/null 2>&1"; then
-    error "Docker или Docker Compose не установлены на сервере"
-    warn "Установите Docker и Docker Compose на сервере перед деплоем"
+if ! ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "command -v docker > /dev/null 2>&1"; then
+    error "Docker не установлен на сервере"
+    warn "Установите Docker на сервере перед деплоем"
     warn "Инструкции: https://docs.docker.com/get-docker/"
+    exit 1
+fi
+
+# Определение команды Docker Compose (v1: docker-compose или v2: docker compose)
+# Создаем функцию на сервере для определения правильной команды
+DOCKER_COMPOSE_CMD_FUNC='dc() { if command -v docker-compose > /dev/null 2>&1; then docker-compose "$@"; else docker compose "$@"; fi; }'
+if ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "command -v docker-compose > /dev/null 2>&1"; then
+    info "Найден Docker Compose v1 (docker-compose)"
+elif ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "docker compose version > /dev/null 2>&1"; then
+    info "Найден Docker Compose v2 (docker compose)"
+else
+    error "Docker Compose не установлен на сервере"
+    warn "Установите Docker Compose на сервере перед деплоем"
+    warn "Инструкции: https://docs.docker.com/compose/install/"
     exit 1
 fi
 info "Docker и Docker Compose установлены"
@@ -182,10 +196,10 @@ else
 fi
 
 # Остановка существующих контейнеров
-# ВАЖНО: Используем 'docker-compose down' БЕЗ флага -v, чтобы НЕ удалять volumes
+# ВАЖНО: Используем 'docker compose down' БЕЗ флага -v, чтобы НЕ удалять volumes
 # Volumes (api_data, api_uploads) сохраняют базу данных и загруженные файлы
 info "Остановка существующих контейнеров (volumes сохраняются)..."
-ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "cd $REMOTE_PATH && docker-compose down || true"
+ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "$DOCKER_COMPOSE_CMD_FUNC; cd $REMOTE_PATH && dc down || true"
 
 # Очистка старых образов (опционально, для экономии места)
 # ВАЖНО: Используем 'docker system prune -f' БЕЗ флага --volumes, чтобы НЕ удалять volumes
@@ -194,7 +208,7 @@ ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "docker system prune -f || true"
 
 # Сборка и запуск контейнеров
 info "Сборка и запуск контейнеров..."
-ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "cd $REMOTE_PATH && docker-compose up -d --build"
+ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "$DOCKER_COMPOSE_CMD_FUNC; cd $REMOTE_PATH && dc up -d --build"
 
 # Ожидание запуска сервисов
 info "Ожидание запуска сервисов (30 секунд)..."
@@ -202,7 +216,7 @@ sleep 30
 
 # Проверка статуса контейнеров
 info "Проверка статуса контейнеров..."
-ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "cd $REMOTE_PATH && docker-compose ps"
+ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "$DOCKER_COMPOSE_CMD_FUNC; cd $REMOTE_PATH && dc ps"
 
 # Проверка health check API
 info "Проверка health check API..."
@@ -211,7 +225,7 @@ if [ "$API_HEALTH" = "200" ]; then
     info "API health check успешен"
 else
     warn "API health check вернул код: $API_HEALTH"
-    warn "Проверьте логи: ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && docker-compose logs api'"
+    warn "Проверьте логи: ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && (command -v docker-compose > /dev/null 2>&1 && docker-compose || docker compose) logs api'"
 fi
 
 # Проверка Web приложения
@@ -221,7 +235,7 @@ if [ "$WEB_HEALTH" = "200" ]; then
     info "Web приложение доступно"
 else
     warn "Web приложение вернуло код: $WEB_HEALTH"
-    warn "Проверьте логи: ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && docker-compose logs web'"
+    warn "Проверьте логи: ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && (command -v docker-compose > /dev/null 2>&1 && docker-compose || docker compose) logs web'"
 fi
 
 # Настройка nginx (если скрипт существует)
@@ -246,14 +260,14 @@ info "  - Публичный домен: https://cyberelka2077.ru (если ngin
 info ""
 info "Полезные команды:"
 info "  Просмотр логов:"
-info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && docker-compose logs -f'"
+info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && (command -v docker-compose > /dev/null 2>&1 && docker-compose || docker compose) logs -f'"
 info "  Просмотр логов конкретного сервиса:"
-info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && docker-compose logs -f api'"
-info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && docker-compose logs -f web'"
-info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && docker-compose logs -f telegram-bot'"
+info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && (command -v docker-compose > /dev/null 2>&1 && docker-compose || docker compose) logs -f api'"
+info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && (command -v docker-compose > /dev/null 2>&1 && docker-compose || docker compose) logs -f web'"
+info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && (command -v docker-compose > /dev/null 2>&1 && docker-compose || docker compose) logs -f telegram-bot'"
 info "  Перезапуск сервисов:"
-info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && docker-compose restart'"
+info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && (command -v docker-compose > /dev/null 2>&1 && docker-compose || docker compose) restart'"
 info "  Остановка сервисов (volumes сохраняются):"
-info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && docker-compose down'"
-info "  ВНИМАНИЕ: Использование 'docker-compose down -v' удалит базу данных!"
+info "    ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && (command -v docker-compose > /dev/null 2>&1 && docker-compose || docker compose) down'"
+info "  ВНИМАНИЕ: Использование 'down -v' удалит базу данных!"
 
