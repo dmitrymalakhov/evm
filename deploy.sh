@@ -128,6 +128,59 @@ else
     warn ".env файл не найден локально. Убедитесь, что он существует на сервере"
 fi
 
+# Проверка и копирование сертификатов на сервер
+info "Проверка SSL сертификатов..."
+if [ -d "cert" ]; then
+    # Проверка наличия необходимых файлов
+    HAS_CERT=false
+    if [ -f "cert/certificate.crt" ] || [ -f "cert/certificate.pem" ] || [ -f "cert/fullchain.pem" ]; then
+        HAS_CERT=true
+    fi
+    
+    if [ "$HAS_CERT" = false ]; then
+        warn "⚠ Сертификат не найден в папке cert/"
+        warn "  Найден только приватный ключ (private_key.txt)"
+        warn "  Для работы SSL нужен также сертификат (certificate.crt, certificate.pem или fullchain.pem)"
+        warn ""
+        warn "  Вы можете:"
+        warn "    1. Добавить сертификат в папку cert/ и запустить деплой снова"
+        warn "    2. Получить сертификат через Let's Encrypt на сервере:"
+        warn "       ssh $SSH_USER@$SERVER_IP 'certbot certonly --standalone -d cyberelka2077.ru'"
+        warn ""
+        warn "  Деплой продолжится, но nginx может не настроиться автоматически"
+    fi
+    
+    info "Копирование SSL сертификатов на сервер..."
+    ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "mkdir -p $REMOTE_PATH/cert"
+    scp $SCP_OPTS -r cert/* "$SSH_USER@$SERVER_IP:$REMOTE_PATH/cert/" 2>/dev/null || {
+        warn "Некоторые файлы сертификатов не удалось скопировать (это нормально, если они уже есть)"
+    }
+    info "Сертификаты скопированы"
+else
+    warn "Директория cert не найдена локально. Убедитесь, что сертификаты загружены на сервер"
+fi
+
+# Копирование конфигурации nginx
+info "Копирование конфигурации nginx на сервер..."
+if [ -d "nginx" ]; then
+    ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "mkdir -p $REMOTE_PATH/nginx"
+    scp $SCP_OPTS -r nginx/* "$SSH_USER@$SERVER_IP:$REMOTE_PATH/nginx/"
+    info "Конфигурация nginx скопирована"
+else
+    warn "Директория nginx не найдена"
+fi
+
+# Копирование скрипта настройки nginx
+info "Копирование скрипта настройки nginx на сервер..."
+if [ -f "scripts/setup-nginx.sh" ]; then
+    ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "mkdir -p $REMOTE_PATH/scripts"
+    scp $SCP_OPTS scripts/setup-nginx.sh "$SSH_USER@$SERVER_IP:$REMOTE_PATH/scripts/"
+    ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "chmod +x $REMOTE_PATH/scripts/setup-nginx.sh"
+    info "Скрипт настройки nginx скопирован"
+else
+    warn "Скрипт setup-nginx.sh не найден"
+fi
+
 # Остановка существующих контейнеров
 # ВАЖНО: Используем 'docker-compose down' БЕЗ флага -v, чтобы НЕ удалять volumes
 # Volumes (api_data, api_uploads) сохраняют базу данных и загруженные файлы
@@ -171,11 +224,25 @@ else
     warn "Проверьте логи: ssh $SSH_USER@$SERVER_IP 'cd $REMOTE_PATH && docker-compose logs web'"
 fi
 
+# Настройка nginx (если скрипт существует)
+if ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "[ -f $REMOTE_PATH/scripts/setup-nginx.sh ]"; then
+    info "Настройка nginx..."
+    if ssh $SSH_OPTS "$SSH_USER@$SERVER_IP" "sudo $REMOTE_PATH/scripts/setup-nginx.sh"; then
+        info "✓ nginx успешно настроен"
+    else
+        warn "Ошибка при настройке nginx. Возможно, требуется запустить вручную:"
+        warn "  ssh $SSH_USER@$SERVER_IP 'sudo $REMOTE_PATH/scripts/setup-nginx.sh'"
+    fi
+else
+    warn "Скрипт настройки nginx не найден на сервере"
+fi
+
 info "Деплой завершен!"
 info "Сервисы доступны по адресам:"
-info "  - Web: http://$SERVER_IP:3000"
-info "  - API: http://$SERVER_IP:4000"
+info "  - Web (локально): http://$SERVER_IP:3000"
+info "  - API (локально): http://$SERVER_IP:4000"
 info "  - API Health: http://$SERVER_IP:4000/health"
+info "  - Публичный домен: https://cyberelka2077.ru (если nginx настроен)"
 info ""
 info "Полезные команды:"
 info "  Просмотр логов:"

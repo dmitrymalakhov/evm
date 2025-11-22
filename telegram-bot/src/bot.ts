@@ -26,6 +26,16 @@ const ADMIN_TELEGRAM_IDS = [
 console.log("[BOT] Admin Telegram IDs:", ADMIN_TELEGRAM_IDS);
 console.log("[BOT] Environment ADMIN_TELEGRAM_IDS:", process.env.ADMIN_TELEGRAM_IDS || "not set");
 
+// Матрица оплаты по грейдам
+const PAYMENT_MATRIX: Record<number, number> = {
+  8: 7000,
+  9: 7000,
+  10: 10000,
+  11: 10000,
+  12: 15000,
+  13: 20000,
+};
+
 // Состояние регистрации для каждого пользователя
 type RegistrationState = {
   step: "waiting_for_contact" | "waiting_for_alcohol" | "waiting_for_alcohol_preference" | "registering" | "completed";
@@ -45,6 +55,11 @@ type RegistrationState = {
   };
 };
 
+// Состояние для выбора грейда при оплате
+type PaymentState = {
+  step: "waiting_for_grade";
+};
+
 // Состояние админских операций
 type AdminState = {
   step: "broadcast_waiting_message";
@@ -59,6 +74,7 @@ type AdminState = {
 
 const userStates = new Map<number, RegistrationState>();
 const adminStates = new Map<number, AdminState>();
+const paymentStates = new Map<number, PaymentState>();
 
 /**
  * Проверка админского доступа
@@ -327,9 +343,7 @@ async function sendUserCredentials(
   await ctx.reply(
     "💳 <b>Оплата участия в проекте</b>\n\n" +
     "Для полного доступа к проекту КиберЁлка 2077 необходимо произвести оплату участия.\n\n" +
-    "🔗 <b>Ссылка на оплату:</b>\n" +
-    "https://messenger.online.sberbank.ru/sl/y9AMLFXWofQE7wm3v\n\n" +
-    "💡 Используйте команду /pay для быстрого доступа к ссылке на оплату.",
+    "💡 Используйте команду /pay для расчета суммы оплаты на основе вашего грейда.",
     {
       parse_mode: "HTML",
       reply_markup: createMainKeyboard(),
@@ -573,9 +587,7 @@ async function completeRegistration(
     await ctx.reply(
       "💳 <b>Оплата участия в проекте</b>\n\n" +
       "Для полного доступа к проекту КиберЁлка 2077 необходимо произвести оплату участия.\n\n" +
-      "🔗 <b>Ссылка на оплату:</b>\n" +
-      "https://messenger.online.sberbank.ru/sl/y9AMLFXWofQE7wm3v\n\n" +
-      "💡 Используйте команду /pay для быстрого доступа к ссылке на оплату.",
+      "💡 Используйте команду /pay для расчета суммы оплаты на основе вашего грейда.",
       {
         parse_mode: "HTML",
         reply_markup: createMainKeyboard(),
@@ -914,18 +926,56 @@ bot.command("myid", async (ctx: Context) => {
 });
 
 /**
- * Обработка команды /pay - оплата участия в проекте
+ * Получить сумму оплаты по грейду
  */
-bot.command("pay", async (ctx: Context) => {
+function getPaymentAmount(grade: number): number | null {
+  return PAYMENT_MATRIX[grade] || null;
+}
+
+/**
+ * Форматировать сумму оплаты
+ */
+function formatPaymentAmount(amount: number): string {
+  return `${amount.toLocaleString("ru-RU")} ₽`;
+}
+
+/**
+ * Показать информацию об оплате с суммой
+ */
+async function showPaymentInfo(ctx: Context, amount: number) {
   await ctx.reply(
     "💳 <b>Оплата участия в проекте</b>\n\n" +
-    "Для участия в проекте КиберЁлка 2077 необходимо произвести оплату.\n\n" +
+    `💰 <b>Сумма к оплате:</b> <code>${formatPaymentAmount(amount)}</code>\n\n` +
     "🔗 <b>Ссылка на оплату:</b>\n" +
     "https://messenger.online.sberbank.ru/sl/y9AMLFXWofQE7wm3v\n\n" +
     "💡 После оплаты вы сможете продолжить участие в проекте и получить доступ ко всем уровням синхронизации.",
     {
       parse_mode: "HTML",
       reply_markup: createMainKeyboard(),
+    },
+  );
+}
+
+/**
+ * Обработка команды /pay - оплата участия в проекте
+ */
+bot.command("pay", async (ctx: Context) => {
+  const userId = ctx.from?.id;
+  if (!userId) {
+    return;
+  }
+
+  logUserAction(userId, "pay_command");
+
+  // Устанавливаем состояние ожидания ввода грейда
+  paymentStates.set(userId, { step: "waiting_for_grade" });
+
+  await ctx.reply(
+    "💳 <b>Оплата участия в проекте</b>\n\n" +
+    "Для расчета суммы оплаты необходимо указать ваш грейд.\n\n" +
+    "📊 <b>Введите ваш грейд:</b>",
+    {
+      parse_mode: "HTML",
     },
   );
 });
@@ -1114,6 +1164,43 @@ bot.on("message", async (ctx: Context) => {
   }
 
   const state = userStates.get(userId);
+  const paymentState = paymentStates.get(userId);
+
+  // Проверяем состояние оплаты
+  if (paymentState?.step === "waiting_for_grade") {
+    const messageText = ctx.message.text?.trim();
+    const grade = messageText ? parseInt(messageText, 10) : null;
+
+    if (grade && !isNaN(grade)) {
+      const amount = getPaymentAmount(grade);
+      if (amount !== null) {
+        logUserAction(userId, "grade_entered", { grade, amount });
+        await showPaymentInfo(ctx, amount);
+        paymentStates.delete(userId);
+        return;
+      } else {
+        await ctx.reply(
+          "❌ <b>Грейд не найден</b>\n\n" +
+          "Пожалуйста, проверьте правильность введенного грейда и попробуйте снова.\n\n" +
+          "Или используйте команду /pay для начала заново.",
+          {
+            parse_mode: "HTML",
+          },
+        );
+        return;
+      }
+    }
+
+    await ctx.reply(
+      "⚠️ <b>Неверный формат</b>\n\n" +
+      "Пожалуйста, введите ваш грейд числом.\n\n" +
+      "Или используйте команду /pay для начала заново.",
+      {
+        parse_mode: "HTML",
+      },
+    );
+    return;
+  }
 
   if (state?.step === "waiting_for_contact") {
     await ctx.reply(
@@ -1505,6 +1592,7 @@ bot.callbackQuery("cancel_broadcast", async (ctx: Context) => {
     },
   );
 });
+
 
 /**
  * Обработка ошибок

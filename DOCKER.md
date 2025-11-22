@@ -34,7 +34,7 @@
    CORS_ORIGIN=http://localhost:3000
 
    # Telegram Bot Configuration
-   BOT_TOKEN=your_telegram_bot_token_here  # Получите у @BotFather в Telegram
+   BOT_TOKEN=8590310304:AAGoQkWA8YwXaFLVEBvumiqnhnaluH_l4ho
    ```
 
 4. **Соберите и запустите все сервисы**:
