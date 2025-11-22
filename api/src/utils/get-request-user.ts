@@ -1,6 +1,6 @@
 import type { Request } from "express";
 
-import { getUserByToken } from "../services/auth";
+import { getUserByToken } from "../services/auth.js";
 
 export function getRequestUser(request: Request, requireUser = false) {
   const authorization = request.headers.authorization;

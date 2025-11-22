@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 
-import { createThought } from "../services/feed";
+import { createThought } from "../services/feed.js";
 
 const router = Router();
 

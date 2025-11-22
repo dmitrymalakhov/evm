@@ -15,6 +15,8 @@ const telegramRegisterSchema = z.object({
   username: z.string().optional(),
   phoneNumber: z.string().optional(),
   email: z.string().email().optional(),
+  willDrinkAlcohol: z.boolean().optional(),
+  alcoholPreference: z.string().optional(),
 });
 
 router.post("/register", (request, response) => {

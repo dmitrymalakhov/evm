@@ -5,7 +5,7 @@ import path from "node:path";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 
-import * as schema from "./schema";
+import * as schema from "./schema.js";
 
 const databaseFile =
     process.env.SQLITE_PATH ??
@@ -40,7 +40,9 @@ if (shouldMigrate && fs.existsSync(migrationsFolder)) {
         }
     }
     try {
+        console.log("Applying database migrations...");
         migrate(db, { migrationsFolder });
+        console.log("Database migrations applied successfully");
     } catch (error) {
         // If migration fails, log the error but don't crash the app
         // This can happen if migrations are already applied or if there's a schema mismatch

@@ -9,7 +9,12 @@ CREATE TABLE IF NOT EXISTS `user_actions` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS `user_actions_user_id_idx` ON `user_actions` (`user_id`);
+
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS `user_actions_created_at_idx` ON `user_actions` (`created_at`);
+
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS `user_actions_action_type_idx` ON `user_actions` (`action_type`);
 

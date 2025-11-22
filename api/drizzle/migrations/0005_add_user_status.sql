@@ -2,6 +2,7 @@
 -- Сначала добавляем как nullable
 ALTER TABLE `users` ADD COLUMN `status` text;
 
+--> statement-breakpoint
 -- Устанавливаем дефолтное значение для всех существующих записей
 UPDATE `users` SET `status` = 'active' WHERE `status` IS NULL;
 

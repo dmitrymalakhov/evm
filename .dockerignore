@@ -1,0 +1,69 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+README.md
+CHECK_README.md
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules
+.pnpm-store
+.pnpm-store/**
+
+# Build outputs
+dist
+build
+.next
+out
+.turbo
+.swc
+
+# Logs
+*.log
+logs
+*.out
+
+# IDE
+.vscode
+.idea
+.fleet
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database (will be mounted as volume)
+*.sqlite
+*.sqlite3
+*.db
+api/sqlite/
+
+# Uploads (will be mounted as volume)
+api/uploads/
+
+# Testing
+coverage
+.nyc_output
+*.lcov
+
+# Misc
+*.tmp
+*.temp
+*.swp
+*.swo
+*.tsbuildinfo
+

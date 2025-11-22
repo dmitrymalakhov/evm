@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
 
-import { getRequestUser } from "../utils/get-request-user";
-import { getTask } from "../services/levels";
-import { saveTaskSubmission, getUserTaskSubmissions } from "../services/feed";
+import { getRequestUser } from "../utils/get-request-user.js";
+import { getTask } from "../services/levels.js";
+import { saveTaskSubmission, getUserTaskSubmissions } from "../services/feed.js";
 
 const router = Router();
 

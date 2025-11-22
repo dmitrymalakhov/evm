@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { sessions, users } from "../db/schema";
+import { db } from "../db/client.js";
+import { sessions, users } from "../db/schema.js";
 
 type LoginPayload = {
   tabNumber: string;
@@ -88,7 +88,7 @@ export function getUserByToken(accessToken?: string | null) {
     .from(sessions)
     .where(eq(sessions.accessToken, accessToken))
     .get();
-  if (!session || session.expiresAt < Date.now()) {
+  if (!session || session.expiresAt.getTime() < Date.now()) {
     return null;
   }
   const user = db

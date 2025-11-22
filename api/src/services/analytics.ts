@@ -1,7 +1,7 @@
 import { desc, eq, sql, and, gte, lte } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { userActions, users, tasks, levels, userWeekProgress } from "../db/schema";
+import { db } from "../db/client.js";
+import { userActions, users, tasks, levels, userWeekProgress } from "../db/schema.js";
 
 export type ActionType =
   | "task_submission"

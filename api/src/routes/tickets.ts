@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { eq } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { tickets } from "../db/schema";
-import { getRequestUser } from "../utils/get-request-user";
-import { generateTicketPDF } from "../services/ticket-pdf";
+import { db } from "../db/client.js";
+import { tickets } from "../db/schema.js";
+import { getRequestUser } from "../utils/get-request-user.js";
+import { generateTicketPDF } from "../services/ticket-pdf.js";
 
 const router = Router();
 

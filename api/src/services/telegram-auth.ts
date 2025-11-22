@@ -16,6 +16,8 @@ export type TelegramRegisterInput = {
     username?: string;
     phoneNumber?: string;
     email?: string;
+    willDrinkAlcohol?: boolean;
+    alcoholPreference?: string;
 };
 
 export type TelegramRegisterResult = {
@@ -176,6 +178,8 @@ export function registerTelegramUser(
             otpCode,
             status: "active",
             telegramId: input.telegramId,
+            willDrinkAlcohol: input.willDrinkAlcohol ?? null,
+            alcoholPreference: input.alcoholPreference ?? null,
             createdAt: now,
             updatedAt: now,
         })

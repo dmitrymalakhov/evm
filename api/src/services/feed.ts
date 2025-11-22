@@ -1,12 +1,12 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 
-import { db } from "../db/client";
+import { db } from "../db/client.js";
 import {
   comments,
   taskSubmissions,
   thoughts,
-} from "../db/schema";
-import { logUserAction } from "./analytics";
+} from "../db/schema.js";
+import { logUserAction } from "./analytics.js";
 
 export function getThoughtFeed() {
   return {

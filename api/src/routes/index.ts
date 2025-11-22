@@ -1,21 +1,21 @@
 import { Router } from "express";
 
-import adminRouter from "./admin";
-import analyticsRouter from "./analytics";
-import authRouter from "./auth";
-import commentsRouter from "./comments";
-import feedRouter from "./feed";
-import featuresRouter from "./features";
-import levelsRouter from "./levels";
-import meRouter from "./me";
-import tasksRouter from "./tasks";
-import teamsRouter from "./teams";
-import thoughtsRouter from "./thoughts";
-import ticketsRouter from "./tickets";
-import uploadsRouter from "./uploads";
-import validatorRouter from "./validator";
-import secretSantaRouter from "./secret-santa";
-import telegramRouter from "./telegram";
+import adminRouter from "./admin.js";
+import analyticsRouter from "./analytics.js";
+import authRouter from "./auth.js";
+import commentsRouter from "./comments.js";
+import feedRouter from "./feed.js";
+import featuresRouter from "./features.js";
+import levelsRouter from "./levels.js";
+import meRouter from "./me.js";
+import tasksRouter from "./tasks.js";
+import teamsRouter from "./teams.js";
+import thoughtsRouter from "./thoughts.js";
+import ticketsRouter from "./tickets.js";
+import uploadsRouter from "./uploads.js";
+import validatorRouter from "./validator.js";
+import secretSantaRouter from "./secret-santa.js";
+import telegramRouter from "./telegram.js";
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { getRequestUser } from "../utils/get-request-user";
+import { getRequestUser } from "../utils/get-request-user.js";
 
 const router = Router();
 

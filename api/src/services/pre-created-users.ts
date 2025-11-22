@@ -1,14 +1,14 @@
 import { eq } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { users } from "../db/schema";
-import type { UserStatus } from "../types/contracts";
+import { db } from "../db/client.js";
+import { users } from "../db/schema.js";
+import type { UserStatus } from "../types/contracts.js";
 import {
   generateThematicNickname,
   generateTabNumber,
   generateOtpCode,
   generateEmailFromNickname,
-} from "./user-generation";
+} from "./user-generation.js";
 
 export type PreCreatedUserInput = {
   email?: string;

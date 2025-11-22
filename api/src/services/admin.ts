@@ -1,11 +1,11 @@
 import { and, desc, eq } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { adminMetrics, comments, taskSubmissions, users, tasks, teamProgress, userWeekProgress, levels, iterations } from "../db/schema";
-import { generateTabNumber, generateOtpCode } from "./user-generation";
-import { getTask, getTasksForLevel } from "./levels";
-import { getActiveIteration } from "./levels";
-import { logUserAction } from "./analytics";
+import { db } from "../db/client.js";
+import { adminMetrics, comments, taskSubmissions, users, tasks, teamProgress, userWeekProgress, levels, iterations } from "../db/schema.js";
+import { generateTabNumber, generateOtpCode } from "./user-generation.js";
+import { getTask, getTasksForLevel } from "./levels.js";
+import { getActiveIteration } from "./levels.js";
+import { logUserAction } from "./analytics.js";
 
 export function getAdminMetrics() {
   const metrics = db.select().from(adminMetrics).limit(1).get();

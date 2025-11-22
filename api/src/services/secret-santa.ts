@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 
 import { db } from "../db/client.js";
 import { secretSantaParticipants, users } from "../db/schema.js";
@@ -284,7 +284,7 @@ export function drawAllSecretSantaRecipients() {
         userId: secretSantaParticipants.userId,
       })
       .from(secretSantaParticipants)
-      .where(eq(secretSantaParticipants.matchedUserId, null))
+      .where(isNull(secretSantaParticipants.matchedUserId))
       .all();
 
     if (waitingParticipants.length < 2) {

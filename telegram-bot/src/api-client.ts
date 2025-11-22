@@ -14,6 +14,8 @@ export type TelegramRegisterRequest = {
   username?: string;
   phoneNumber?: string;
   email?: string;
+  willDrinkAlcohol?: boolean;
+  alcoholPreference?: string;
 };
 
 export type TelegramRegisterResponse = {
@@ -108,7 +110,7 @@ export async function registerTelegramUser(
       let errorMessage = "Неизвестная ошибка";
       
       try {
-        const error = await response.json();
+        const error = await response.json() as { message?: string };
         errorMessage = error.message || errorMessage;
       } catch {
         errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -118,7 +120,7 @@ export async function registerTelegramUser(
       throw new Error(errorMessage);
     }
 
-    const result = await response.json();
+    const result = await response.json() as TelegramRegisterResponse;
     console.log(`[API] User registered successfully: ${result.tabNumber}`);
     return result;
   } catch (error) {
@@ -174,7 +176,7 @@ export async function getTelegramUsers(): Promise<TelegramUsersResponse> {
       let errorMessage = "Неизвестная ошибка";
       
       try {
-        const error = await response.json();
+        const error = await response.json() as { message?: string };
         errorMessage = error.message || errorMessage;
       } catch {
         errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -184,7 +186,7 @@ export async function getTelegramUsers(): Promise<TelegramUsersResponse> {
       throw new Error(errorMessage);
     }
 
-    const result = await response.json();
+    const result = await response.json() as TelegramUsersResponse;
     console.log(`[API] Fetched ${result.total} users`);
     return result;
   } catch (error) {

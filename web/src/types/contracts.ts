@@ -41,7 +41,7 @@ export type Task = {
 };
 
 export type SubmissionResponse = {
-  status: "accepted" | "rejected" | "pending";
+  status: "accepted" | "rejected" | "pending" | "revision";
   hint?: string;
   message?: string;
 };

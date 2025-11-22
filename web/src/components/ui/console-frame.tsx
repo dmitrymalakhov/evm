@@ -5,7 +5,15 @@ import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 
-type ConsoleFrameProps = React.HTMLAttributes<HTMLDivElement> & {
+type ConsoleFrameProps = Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  | "onDrag"
+  | "onDragStart"
+  | "onDragEnd"
+  | "onAnimationStart"
+  | "onAnimationEnd"
+  | "onAnimationIteration"
+> & {
   glow?: "accent" | "matrix" | "none";
 };
 

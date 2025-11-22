@@ -27,7 +27,7 @@ function ProvidersWithTheme({ children }: ProvidersProps) {
       <Toaster
         position="top-right"
         closeButton
-        theme={theme === "light" ? "light" : "dark"}
+        theme="dark"
         toastOptions={{
           className: "crt-frame border border-evm-accent/30 bg-black/80",
         }}

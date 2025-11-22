@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 
-import { createComment } from "../services/feed";
-import { getRequestUser } from "../utils/get-request-user";
+import { createComment } from "../services/feed.js";
+import { getRequestUser } from "../utils/get-request-user.js";
 
 const router = Router();
 

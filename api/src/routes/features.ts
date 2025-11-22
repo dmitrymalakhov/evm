@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { getFeatureFlags } from "../services/features";
+import { getFeatureFlags } from "../services/features.js";
 
 const router = Router();
 

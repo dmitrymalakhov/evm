@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { getThoughtFeed } from "../services/feed";
+import { getThoughtFeed } from "../services/feed.js";
 
 const router = Router();
 

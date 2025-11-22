@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, gt, isNull, lte } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { iterations, levels, tasks } from "../db/schema";
+import { db } from "../db/client.js";
+import { iterations, levels, tasks } from "../db/schema.js";
 
 function nowDate() {
   return new Date();

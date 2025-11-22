@@ -7,8 +7,8 @@ import {
   getTopUsersByActivity,
   getTaskCompletionByWeek,
   getUserActivityTimeline,
-} from "../services/analytics";
-import { getRequestUser } from "../utils/get-request-user";
+} from "../services/analytics.js";
+import { getRequestUser } from "../utils/get-request-user.js";
 
 const router = Router();
 

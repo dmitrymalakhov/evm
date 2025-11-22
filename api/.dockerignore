@@ -1,0 +1,25 @@
+# Build outputs
+dist
+build
+
+# Dependencies
+node_modules
+
+# Logs
+*.log
+*.out
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+sqlite/
+
+# Uploads
+uploads/
+
+# Development files
+*.tsbuildinfo
+api-dev.log
+api-dev.out
+

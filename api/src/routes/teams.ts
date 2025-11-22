@@ -12,8 +12,8 @@ import {
   voteForIdea,
   removeIdeaVote,
   IdeaVoteError,
-} from "../services/team";
-import { getRequestUser } from "../utils/get-request-user";
+} from "../services/team.js";
+import { getRequestUser } from "../utils/get-request-user.js";
 
 const router = Router();
 

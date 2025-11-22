@@ -15,20 +15,20 @@ import {
   createUser,
   updateUser,
   deleteUser,
-} from "../services/admin";
+} from "../services/admin.js";
 import {
   createThought,
   updateThought,
   deleteThought,
   getThoughtFeed,
-} from "../services/feed";
+} from "../services/feed.js";
 import {
   listPreCreatedUsers,
   createPreCreatedUser,
   updatePreCreatedUser,
   deletePreCreatedUser,
   activatePreCreatedUser,
-} from "../services/pre-created-users";
+} from "../services/pre-created-users.js";
 import {
   addTask,
   deleteTask,
@@ -42,8 +42,8 @@ import {
   updateLevel,
   updateTask,
   upsertLevel,
-} from "../services/levels";
-import { getRequestUser } from "../utils/get-request-user";
+} from "../services/levels.js";
+import { getRequestUser } from "../utils/get-request-user.js";
 
 const router = Router();
 
@@ -181,14 +181,14 @@ router.post("/levels", (request, response) => {
     const levelId = payload.id ?? crypto.randomUUID();
     const level = upsertLevel({
       id: levelId,
-      iterationId: payload.iterationId,
+      iterationId: payload.iterationId ?? null,
       week: payload.week,
       title: payload.title,
       state: payload.state,
       opensAt: payload.opensAt,
       closesAt: payload.closesAt,
       storyline: payload.config.storyline,
-      hint: payload.config.hint,
+      hint: payload.config.hint ?? null,
     });
     return response.status(201).json({
       id: level?.id ?? levelId,

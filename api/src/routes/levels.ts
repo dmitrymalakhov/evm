@@ -7,7 +7,7 @@ import {
   getLevelById,
   getLevelByWeek,
   getTasksForLevel,
-} from "../services/levels";
+} from "../services/levels.js";
 
 const router = Router();
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 
-import { loginWithOtp } from "../services/auth";
+import { loginWithOtp } from "../services/auth.js";
 
 const router = Router();
 

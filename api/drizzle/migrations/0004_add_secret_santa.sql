@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS `secret_santa_participants` (
   FOREIGN KEY (`matched_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 );
 
+--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS `secret_santa_user_idx` ON `secret_santa_participants` (`user_id`);
+
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS `secret_santa_matched_idx` ON `secret_santa_participants` (`matched_user_id`);
 

@@ -1,8 +1,8 @@
 import PDFDocument from "pdfkit";
 import { eq } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { tickets, users, userWeekProgress } from "../db/schema";
+import { db } from "../db/client.js";
+import { tickets, users, userWeekProgress } from "../db/schema.js";
 
 // Простая функция транслитерации для кириллицы
 function transliterate(text: string): string {

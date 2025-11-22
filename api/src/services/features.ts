@@ -1,5 +1,5 @@
-import { db } from "../db/client";
-import { featureFlags } from "../db/schema";
+import { db } from "../db/client.js";
+import { featureFlags } from "../db/schema.js";
 
 export function getFeatureFlags() {
   const flags = db.select().from(featureFlags).limit(1).get();

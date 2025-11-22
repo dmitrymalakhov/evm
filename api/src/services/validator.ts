@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { tickets, validatorCodes } from "../db/schema";
+import { db } from "../db/client.js";
+import { tickets, validatorCodes } from "../db/schema.js";
 
 export function validateCode(inputCode: string) {
   const code = inputCode.trim().toUpperCase();

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 
-import { validateCode } from "../services/validator";
+import { validateCode } from "../services/validator.js";
 
 const router = Router();
 

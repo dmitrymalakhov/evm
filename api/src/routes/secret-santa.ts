@@ -10,8 +10,8 @@ import {
   markSecretSantaGifted,
   registerSecretSantaParticipant,
   updateSecretSantaReminder,
-} from "../services/secret-santa";
-import { getRequestUser } from "../utils/get-request-user";
+} from "../services/secret-santa.js";
+import { getRequestUser } from "../utils/get-request-user.js";
 
 const router = Router();
 

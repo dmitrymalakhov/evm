@@ -1,8 +1,8 @@
 import { Router } from "express";
 import fs from "fs";
 
-import { getRequestUser } from "../utils/get-request-user";
-import { upload, getFileUrl } from "../utils/upload";
+import { getRequestUser } from "../utils/get-request-user.js";
+import { upload, getFileUrl } from "../utils/upload.js";
 
 const router = Router();
 
