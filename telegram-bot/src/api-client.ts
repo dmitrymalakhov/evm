@@ -147,6 +147,7 @@ export type TelegramUser = {
   email: string;
   tabNumber: string;
   status: string;
+  hasPaid?: boolean | null;
   createdAt: string;
 };
 
@@ -157,13 +158,15 @@ export type TelegramUsersResponse = {
 
 /**
  * Получает список всех пользователей, зарегистрированных через Telegram
+ * @param hasPaidFilter - фильтр по статусу оплаты: true - только оплатившие, false - только не оплатившие, undefined - все
  */
-export async function getTelegramUsers(): Promise<TelegramUsersResponse> {
-  console.log(`[API] Fetching Telegram users list`);
+export async function getTelegramUsers(hasPaidFilter?: boolean): Promise<TelegramUsersResponse> {
+  const filterParam = hasPaidFilter !== undefined ? `?hasPaid=${hasPaidFilter}` : "";
+  console.log(`[API] Fetching Telegram users list${filterParam ? ` with filter hasPaid=${hasPaidFilter}` : ""}`);
 
   try {
     const response = await fetchWithRetry(
-      `${API_BASE_URL}/telegram/users`,
+      `${API_BASE_URL}/telegram/users${filterParam}`,
       {
         method: "GET",
         headers: {
@@ -203,5 +206,58 @@ export async function getTelegramUsers(): Promise<TelegramUsersResponse> {
     }
     
     throw new Error("Неожиданная ошибка при получении списка пользователей");
+  }
+}
+
+/**
+ * Обновляет грейд пользователя по telegramId
+ */
+export async function updateUserGrade(
+  telegramId: string,
+  grade: number,
+): Promise<void> {
+  console.log(`[API] Updating grade for user: ${telegramId}, grade: ${grade}`);
+
+  try {
+    const response = await fetchWithRetry(
+      `${API_BASE_URL}/telegram/update-grade`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ telegramId, grade }),
+      },
+    );
+
+    if (!response.ok) {
+      let errorMessage = "Неизвестная ошибка";
+      
+      try {
+        const error = await response.json() as { message?: string };
+        errorMessage = error.message || errorMessage;
+      } catch {
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+
+      console.error(`[API] Failed to update grade: ${errorMessage}`);
+      throw new Error(errorMessage);
+    }
+
+    console.log(`[API] Grade updated successfully for user: ${telegramId}`);
+  } catch (error) {
+    console.error(`[API] Update grade error:`, error);
+    
+    if (error instanceof Error) {
+      if (error.message.includes("timeout") || error.message.includes("ожидания")) {
+        throw new Error("Сервер не отвечает. Попробуйте позже.");
+      }
+      if (error.message.includes("fetch failed") || error.message.includes("network")) {
+        throw new Error("Ошибка соединения с сервером. Проверьте подключение к интернету.");
+      }
+      throw error;
+    }
+    
+    throw new Error("Неожиданная ошибка при обновлении грейда");
   }
 }

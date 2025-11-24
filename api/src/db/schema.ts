@@ -34,6 +34,8 @@ export const users = sqliteTable(
         telegramId: text("telegram_id"),
         willDrinkAlcohol: integer("will_drink_alcohol", { mode: "boolean" }),
         alcoholPreference: text("alcohol_preference"),
+        grade: integer("grade"),
+        hasPaid: integer("has_paid", { mode: "boolean" }),
         createdAt: integer("created_at", { mode: "timestamp" })
             .$defaultFn(() => new Date())
             .notNull(),

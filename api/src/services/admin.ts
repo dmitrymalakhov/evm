@@ -591,6 +591,8 @@ export function createUser(data: {
   tabNumber?: string;
   otpCode?: string;
   status?: "active" | "pending";
+  grade?: number;
+  hasPaid?: boolean;
 }) {
   // Проверяем уникальность email
   const existingUserByEmail = db
@@ -638,6 +640,8 @@ export function createUser(data: {
       tabNumber,
       otpCode,
       status: data.status || "active",
+      grade: data.grade ?? null,
+      hasPaid: data.hasPaid ?? null,
       createdAt: now,
       updatedAt: now,
     })
@@ -660,6 +664,8 @@ export function updateUser(
     tabNumber?: string;
     otpCode?: string;
     status?: "active" | "pending";
+    grade?: number;
+    hasPaid?: boolean;
   },
 ) {
   const existing = getUserById(userId);
@@ -721,6 +727,12 @@ export function updateUser(
   }
   if (data.status !== undefined) {
     updateData.status = data.status;
+  }
+  if (data.grade !== undefined) {
+    updateData.grade = data.grade ?? null;
+  }
+  if (data.hasPaid !== undefined) {
+    updateData.hasPaid = data.hasPaid ?? null;
   }
 
   db.update(users)

@@ -813,6 +813,8 @@ const userSchema = z.object({
   tabNumber: z.string().optional(),
   otpCode: z.string().optional(),
   status: z.enum(["active", "pending"]).optional(),
+  grade: z.number().int().min(8).max(13).optional().nullable(),
+  hasPaid: z.boolean().optional().nullable(),
 });
 
 const userUpdateSchema = userSchema.partial();
@@ -838,6 +840,8 @@ router.get("/users", (request, response) => {
         otpCode: u.otpCode,
         status: u.status ?? "active",
         telegramId: u.telegramId ?? undefined,
+        grade: u.grade ?? undefined,
+        hasPaid: u.hasPaid ?? undefined,
         createdAt: u.createdAt.toISOString(),
         updatedAt: u.updatedAt.toISOString(),
       })),
@@ -879,6 +883,8 @@ router.get("/users/:userId", (request, response) => {
       otpCode: foundUser.otpCode,
       status: foundUser.status ?? "active",
       telegramId: foundUser.telegramId ?? undefined,
+      grade: foundUser.grade ?? undefined,
+      hasPaid: foundUser.hasPaid ?? undefined,
       createdAt: foundUser.createdAt.toISOString(),
       updatedAt: foundUser.updatedAt.toISOString(),
     });
@@ -921,6 +927,8 @@ router.post("/users", (request, response) => {
       otpCode: created.otpCode,
       status: created.status ?? "active",
       telegramId: created.telegramId ?? undefined,
+      grade: created.grade ?? undefined,
+      hasPaid: created.hasPaid ?? undefined,
       createdAt: created.createdAt.toISOString(),
       updatedAt: created.updatedAt.toISOString(),
     });
@@ -966,6 +974,8 @@ router.put("/users/:userId", (request, response) => {
       otpCode: updated.otpCode,
       status: updated.status ?? "active",
       telegramId: updated.telegramId ?? undefined,
+      grade: updated.grade ?? undefined,
+      hasPaid: updated.hasPaid ?? undefined,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
     });

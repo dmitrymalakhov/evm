@@ -1,5 +1,5 @@
 import { Bot, Context, Keyboard, InlineKeyboard } from "grammy";
-import { registerTelegramUser, getTelegramUsers } from "./api-client.js";
+import { registerTelegramUser, getTelegramUsers, updateUserGrade } from "./api-client.js";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 if (!BOT_TOKEN) {
@@ -62,13 +62,14 @@ type PaymentState = {
 
 // Состояние админских операций
 type AdminState = {
-  step: "broadcast_waiting_message";
+  step: "broadcast_waiting_message" | "broadcast_waiting_payment_filter";
   data?: {
     message?: string;
     type?: "text" | "photo" | "video" | "document";
     fileId?: string;
     fileUniqueId?: string;
     fileName?: string;
+    hasPaidFilter?: boolean; // true - только оплатившие, false - только не оплатившие, undefined - все
   };
 };
 
@@ -1093,18 +1094,25 @@ bot.on("message", async (ctx: Context) => {
         return;
       }
 
-      // Сохраняем данные для рассылки
-      const broadcastData = JSON.stringify({
-        type: mediaType,
-        message: messageText || "",
-        fileId,
-        fileUniqueId,
-        fileName,
+      // Сохраняем данные для рассылки во временное состояние
+      adminStates.set(userId, {
+        step: "broadcast_waiting_payment_filter",
+        data: {
+          type: mediaType,
+          message: messageText || "",
+          fileId,
+          fileUniqueId,
+          fileName,
+        },
       });
 
-      // Подтверждение рассылки
-      const confirmKeyboard = new InlineKeyboard()
-        .text("✅ Да, разослать", `confirm_broadcast:${Buffer.from(broadcastData).toString("base64")}`)
+      // Выбор фильтра по оплате
+      const filterKeyboard = new InlineKeyboard()
+        .text("✅ Только оплатившие", "broadcast_filter:paid")
+        .row()
+        .text("❌ Только не оплатившие", "broadcast_filter:unpaid")
+        .row()
+        .text("👥 Всем", "broadcast_filter:all")
         .row()
         .text("❌ Отмена", "cancel_broadcast");
 
@@ -1136,22 +1144,25 @@ bot.on("message", async (ctx: Context) => {
       }
 
       await ctx.reply(
-        "📢 <b>Подтверждение системной рассылки</b>\n\n" +
+        "📢 <b>Выбор получателей рассылки</b>\n\n" +
         `<i>Матрица E.V.M. готова к отправке сообщения...</i>\n\n` +
         `${typeEmoji[mediaType]} <b>Тип:</b> ${typeName[mediaType]}\n\n` +
         "<b>Содержимое для рассылки:</b>\n\n" +
         previewText +
         "\n\n" +
-        "Разослать это всем синхронизированным пользователям?",
+        "💳 <b>Выберите получателей:</b>",
         {
           parse_mode: "HTML",
-          reply_markup: confirmKeyboard,
+          reply_markup: filterKeyboard,
         },
       );
 
+      // Обновляем состояние, сохраняя данные
+      const currentState = adminStates.get(userId);
       adminStates.set(userId, {
-        step: "broadcast_waiting_message",
+        step: "broadcast_waiting_payment_filter",
         data: {
+          ...currentState?.data,
           message: messageText || "",
           type: mediaType,
           fileId,
@@ -1175,6 +1186,16 @@ bot.on("message", async (ctx: Context) => {
       const amount = getPaymentAmount(grade);
       if (amount !== null) {
         logUserAction(userId, "grade_entered", { grade, amount });
+        
+        // Сохраняем грейд в базу данных
+        try {
+          await updateUserGrade(userId.toString(), grade);
+          console.log(`[BOT] Grade ${grade} saved for user ${userId}`);
+        } catch (error) {
+          console.error(`[BOT] Failed to save grade for user ${userId}:`, error);
+          // Не прерываем процесс, просто логируем ошибку
+        }
+        
         await showPaymentInfo(ctx, amount);
         paymentStates.delete(userId);
         return;
@@ -1383,6 +1404,143 @@ bot.callbackQuery("admin_refresh", async (ctx: Context) => {
 });
 
 /**
+ * Обработка выбора фильтра оплаты для рассылки
+ */
+bot.callbackQuery(/^broadcast_filter:(paid|unpaid|all)$/, async (ctx: Context) => {
+  await ctx.answerCallbackQuery();
+
+  if (!requireAdmin(ctx)) {
+    return;
+  }
+
+  const userId = ctx.from?.id;
+  if (!userId) return;
+
+  try {
+    const match = ctx.callbackQuery.data?.match(/^broadcast_filter:(paid|unpaid|all)$/);
+    if (!match) {
+      await ctx.reply("❌ <b>Ошибка:</b> Неверный фильтр.", { parse_mode: "HTML" });
+      return;
+    }
+
+    const filterType = match[1];
+    const adminState = adminStates.get(userId);
+    
+    if (!adminState || !adminState.data) {
+      await ctx.reply("❌ <b>Ошибка:</b> Данные рассылки не найдены. Начните заново.", { parse_mode: "HTML" });
+      adminStates.delete(userId);
+      return;
+    }
+
+    // Определяем фильтр по оплате
+    let hasPaidFilter: boolean | undefined;
+    let filterText: string;
+    
+    if (filterType === "paid") {
+      hasPaidFilter = true;
+      filterText = "✅ только оплатившим";
+    } else if (filterType === "unpaid") {
+      hasPaidFilter = false;
+      filterText = "❌ только не оплатившим";
+    } else {
+      hasPaidFilter = undefined;
+      filterText = "👥 всем";
+    }
+
+    // Сохраняем фильтр в состояние
+    adminState.data.hasPaidFilter = hasPaidFilter;
+    adminStates.set(userId, adminState);
+
+    // Получаем статистику пользователей с учетом фильтра
+    const usersData = await getTelegramUsers(hasPaidFilter);
+    const activeUsers = usersData.users.filter(
+      (u) => u.status === "active" && u.telegramId && u.telegramId.trim() !== "",
+    );
+
+    if (activeUsers.length === 0) {
+      await ctx.editMessageText(
+        "⚠️ <b>Нет пользователей для рассылки</b>\n\n" +
+        `По выбранному фильтру (${filterText}) нет активных пользователей с telegramId для рассылки.`,
+        {
+          parse_mode: "HTML",
+        },
+      );
+      adminStates.delete(userId);
+      return;
+    }
+
+    // Формируем данные для рассылки
+    const broadcastData = JSON.stringify({
+      type: adminState.data.type,
+      message: adminState.data.message || "",
+      fileId: adminState.data.fileId,
+      fileUniqueId: adminState.data.fileUniqueId,
+      fileName: adminState.data.fileName,
+      hasPaidFilter,
+    });
+
+    // Подтверждение рассылки
+    const confirmKeyboard = new InlineKeyboard()
+      .text("✅ Да, разослать", `confirm_broadcast:${Buffer.from(broadcastData).toString("base64")}`)
+      .row()
+      .text("❌ Отмена", "cancel_broadcast");
+
+    const typeEmoji = {
+      text: "📝",
+      photo: "🖼",
+      video: "🎥",
+      document: "📎",
+    };
+
+    const typeName = {
+      text: "Текстовое сообщение",
+      photo: "Фото",
+      video: "Видео",
+      document: "Документ",
+    };
+
+    let previewText = "";
+    if (adminState.data.type === "text") {
+      previewText = (adminState.data.message || "").substring(0, 500) + 
+        ((adminState.data.message || "").length > 500 ? "\n\n... (обрезано)" : "");
+    } else {
+      previewText = `${typeEmoji[adminState.data.type]} ${typeName[adminState.data.type]}`;
+      if (adminState.data.fileName) {
+        previewText += `\n📄 Файл: ${adminState.data.fileName}`;
+      }
+      if (adminState.data.message) {
+        previewText += `\n\n📝 Подпись:\n${adminState.data.message.substring(0, 300)}${adminState.data.message.length > 300 ? "... (обрезано)" : ""}`;
+      }
+    }
+
+    await ctx.editMessageText(
+      "📢 <b>Подтверждение системной рассылки</b>\n\n" +
+      `<i>Матрица E.V.M. готова к отправке сообщения...</i>\n\n` +
+      `${typeEmoji[adminState.data.type]} <b>Тип:</b> ${typeName[adminState.data.type]}\n` +
+      `👥 <b>Получатели:</b> ${filterText}\n` +
+      `📊 <b>Количество:</b> ${activeUsers.length} пользователей\n\n` +
+      "<b>Содержимое для рассылки:</b>\n\n" +
+      previewText +
+      "\n\n" +
+      "Разослать это сообщение?",
+      {
+        parse_mode: "HTML",
+        reply_markup: confirmKeyboard,
+      },
+    );
+  } catch (error) {
+    await ctx.reply(
+      "❌ <b>Ошибка:</b> Не удалось обработать выбор фильтра:\n\n" +
+      `<code>${error instanceof Error ? error.message : "Неизвестная ошибка"}</code>`,
+      {
+        parse_mode: "HTML",
+      },
+    );
+    adminStates.delete(userId);
+  }
+});
+
+/**
  * Подтверждение рассылки
  */
 bot.callbackQuery(/^confirm_broadcast:(.+)$/, async (ctx: Context) => {
@@ -1410,6 +1568,7 @@ bot.callbackQuery(/^confirm_broadcast:(.+)$/, async (ctx: Context) => {
       fileId?: string;
       fileUniqueId?: string;
       fileName?: string;
+      hasPaidFilter?: boolean; // true - только оплатившие, false - только не оплатившие, undefined - все
     };
 
     try {
@@ -1419,16 +1578,17 @@ bot.callbackQuery(/^confirm_broadcast:(.+)$/, async (ctx: Context) => {
       broadcastData = {
         type: "text",
         message: broadcastDataStr,
+        hasPaidFilter: undefined,
       };
     }
 
     await ctx.deleteMessage();
     const statusMsg = await ctx.reply("⏳ <i>Инициализация системной рассылки матрицы E.V.M...</i>", { parse_mode: "HTML" });
 
-    // Получаем список пользователей из базы данных через API
+    // Получаем список пользователей из базы данных через API с учетом фильтра по оплате
     // API возвращает только пользователей, у которых есть telegramId в базе данных (поле telegram_id)
     // Это поле сохраняется при регистрации пользователя через Telegram бота
-    const usersData = await getTelegramUsers();
+    const usersData = await getTelegramUsers(broadcastData.hasPaidFilter);
 
     // Фильтруем только активных пользователей с валидным telegramId
     // Рассылка идет только по пользователям с telegramId из базы данных

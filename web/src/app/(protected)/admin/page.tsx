@@ -156,6 +156,8 @@ export default function AdminPage() {
     otpCode: string;
     status: "active" | "pending";
     telegramId?: string;
+    grade?: number;
+    hasPaid?: boolean;
     createdAt: string;
     updatedAt: string;
   }>>([]);
@@ -172,6 +174,8 @@ export default function AdminPage() {
     otpCode: string;
     status: "active" | "pending";
     telegramId?: string;
+    grade?: number;
+    hasPaid?: boolean;
     createdAt: string;
     updatedAt: string;
   } | null>(null);
@@ -184,6 +188,8 @@ export default function AdminPage() {
     tabNumber: "",
     otpCode: "",
     status: "active" as "active" | "pending",
+    grade: "" as string | number,
+    hasPaid: false as boolean | null,
   });
   const SUBMISSIONS_PER_PAGE = 10;
 
@@ -769,6 +775,8 @@ export default function AdminPage() {
       tabNumber: "",
       otpCode: "",
       status: "active",
+      grade: "",
+      hasPaid: false,
     });
     setShowUserForm(true);
   };
@@ -784,6 +792,8 @@ export default function AdminPage() {
       tabNumber: "tabNumber" in user ? user.tabNumber : "",
       otpCode: "otpCode" in user ? user.otpCode : "",
       status: "status" in user ? user.status : "active",
+      grade: "grade" in user && user.grade !== undefined ? user.grade : "",
+      hasPaid: "hasPaid" in user && user.hasPaid !== undefined ? user.hasPaid : false,
     });
     setShowUserForm(true);
   };
@@ -814,6 +824,8 @@ export default function AdminPage() {
           tabNumber: userForm.tabNumber || undefined,
           otpCode: userForm.otpCode || undefined,
           status: userForm.status,
+          grade: userForm.grade !== "" ? (typeof userForm.grade === "number" ? userForm.grade : parseInt(userForm.grade as string, 10)) : undefined,
+          hasPaid: userForm.hasPaid !== null ? userForm.hasPaid : undefined,
         };
 
         await api.updateAdminUser(editingUser.id, payload);
@@ -830,6 +842,8 @@ export default function AdminPage() {
           tabNumber: userForm.tabNumber || undefined,
           otpCode: userForm.otpCode || undefined,
           status: userForm.status,
+          grade: userForm.grade !== "" ? (typeof userForm.grade === "number" ? userForm.grade : parseInt(userForm.grade as string, 10)) : undefined,
+          hasPaid: userForm.hasPaid !== null ? userForm.hasPaid : undefined,
         };
 
         await api.createAdminUser(payload);
@@ -1937,6 +1951,16 @@ export default function AdminPage() {
                                   Telegram ID: {user.telegramId}
                                 </p>
                               )}
+                              {user.grade !== undefined && user.grade !== null && (
+                                <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                                  Грейд: {user.grade}
+                                </p>
+                              )}
+                              {user.hasPaid !== undefined && (
+                                <p className="text-xs uppercase tracking-[0.16em] text-evm-muted">
+                                  Оплата: {user.hasPaid ? "✅ Проведена" : "❌ Не проведена"}
+                                </p>
+                              )}
                             </div>
                             <div className="flex items-center justify-end gap-2">
                               {isPreCreated && (
@@ -2776,6 +2800,42 @@ export default function AdminPage() {
                     >
                       <option value="active">Активен</option>
                       <option value="pending">Предзаполнен</option>
+                    </select>
+                  </div>
+                </>
+              )}
+              {(!editingUser || (editingUser && "status" in editingUser && editingUser.status !== "pending")) && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="userGrade">Грейд (опционально)</Label>
+                    <Input
+                      id="userGrade"
+                      type="number"
+                      min="8"
+                      max="13"
+                      value={userForm.grade}
+                      onChange={(e) =>
+                        setUserForm({ ...userForm, grade: e.target.value === "" ? "" : parseInt(e.target.value, 10) })
+                      }
+                      placeholder="8-13"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userHasPaid">Оплата проведена</Label>
+                    <select
+                      id="userHasPaid"
+                      className="flex h-11 w-full rounded-md border border-white/10 bg-black/40 px-4 text-sm uppercase tracking-[0.18em] text-foreground"
+                      value={userForm.hasPaid === null ? "" : userForm.hasPaid ? "true" : "false"}
+                      onChange={(e) =>
+                        setUserForm({
+                          ...userForm,
+                          hasPaid: e.target.value === "" ? null : e.target.value === "true",
+                        })
+                      }
+                    >
+                      <option value="">Не указано</option>
+                      <option value="true">Да</option>
+                      <option value="false">Нет</option>
                     </select>
                   </div>
                 </>

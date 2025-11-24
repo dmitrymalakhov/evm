@@ -151,3 +151,4 @@ docker run --rm -v evm_api_data:/data -v $(pwd):/backup alpine tar czf /backup/d
 docker run --rm -v evm_api_data:/data -v $(pwd):/backup alpine sh -c "cd /data && rm -rf * && tar xzf /backup/db_backup_YYYYMMDD_HHMMSS.tar.gz"
 ```
 
+

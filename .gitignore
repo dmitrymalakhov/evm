@@ -68,6 +68,10 @@ api/uploads/
 .envrc
 .direnv/
 
+# local deploy config (contains sensitive data)
+.cert_password
+.deploy.local
+
 # vercel
 .vercel
 

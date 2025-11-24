@@ -79,3 +79,4 @@ ssh root@207.154.207.198 "docker --version && docker-compose --version"
 - **API порт:** 4000
 - **Web порт:** 3000
 
+

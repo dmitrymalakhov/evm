@@ -84,9 +84,60 @@ if [ "$USE_LETSENCRYPT" = false ]; then
 
     # Копирование приватного ключа
     if [ -f "$CERT_DIR/private_key.txt" ]; then
-        cp "$CERT_DIR/private_key.txt" "$SSL_DIR/privkey.pem"
-        chmod 600 "$SSL_DIR/privkey.pem"
-        info "✓ Приватный ключ скопирован"
+        # Проверка, зашифрован ли ключ
+        if grep -q "BEGIN ENCRYPTED PRIVATE KEY" "$CERT_DIR/private_key.txt" 2>/dev/null; then
+            info "Обнаружен зашифрованный приватный ключ, расшифровываем..."
+            
+            # Получение пароля из переменной окружения или запрос у пользователя
+            if [ -z "$CERT_PASSWORD" ]; then
+                # Если пароль не задан в переменной окружения, запрашиваем один раз
+                if [ -z "$CERT_PASSWORD_PROMPTED" ]; then
+                    read -sp "Введите пароль от сертификата: " CERT_PASSWORD
+                    echo ""
+                    export CERT_PASSWORD_PROMPTED=1
+                else
+                    error "Пароль от сертификата не задан. Установите переменную CERT_PASSWORD или введите пароль."
+                    exit 1
+                fi
+            fi
+            
+            # Расшифровка ключа
+            # Пробуем разные форматы: сначала PKCS#8, затем традиционный RSA
+            DECRYPT_SUCCESS=false
+            if echo "$CERT_PASSWORD" | openssl pkcs8 -in "$CERT_DIR/private_key.txt" -out "$SSL_DIR/privkey.pem" -passin stdin -nocrypt 2>/dev/null || \
+               echo "$CERT_PASSWORD" | openssl pkcs8 -in "$CERT_DIR/private_key.txt" -out "$SSL_DIR/privkey.pem" -passin stdin 2>/dev/null; then
+                DECRYPT_SUCCESS=true
+            elif echo "$CERT_PASSWORD" | openssl rsa -in "$CERT_DIR/private_key.txt" -out "$SSL_DIR/privkey.pem" -passin stdin 2>/dev/null; then
+                DECRYPT_SUCCESS=true
+            fi
+            
+            if [ "$DECRYPT_SUCCESS" = true ]; then
+                chmod 600 "$SSL_DIR/privkey.pem"
+                info "✓ Приватный ключ расшифрован и скопирован"
+                
+                # Опционально: сохраняем расшифрованный ключ обратно в cert/ для будущего использования
+                # (только если исходный ключ зашифрован, чтобы не перезаписывать незашифрованный)
+                if [ -w "$CERT_DIR" ]; then
+                    # Создаем резервную копию зашифрованного ключа
+                    if [ ! -f "$CERT_DIR/private_key.txt.encrypted.backup" ]; then
+                        cp "$CERT_DIR/private_key.txt" "$CERT_DIR/private_key.txt.encrypted.backup" 2>/dev/null || true
+                    fi
+                    # Сохраняем расшифрованную версию (опционально, можно закомментировать для безопасности)
+                    # cp "$SSL_DIR/privkey.pem" "$CERT_DIR/private_key.txt" 2>/dev/null || true
+                    # chmod 600 "$CERT_DIR/private_key.txt" 2>/dev/null || true
+                fi
+            else
+                error "Не удалось расшифровать приватный ключ. Проверьте пароль и формат ключа."
+                error "Попробуйте расшифровать ключ вручную:"
+                error "  openssl rsa -in cert/private_key.txt -out cert/private_key_decrypted.txt"
+                exit 1
+            fi
+        else
+            # Ключ не зашифрован, просто копируем
+            cp "$CERT_DIR/private_key.txt" "$SSL_DIR/privkey.pem"
+            chmod 600 "$SSL_DIR/privkey.pem"
+            info "✓ Приватный ключ скопирован"
+        fi
     else
         error "Приватный ключ не найден: $CERT_DIR/private_key.txt"
         exit 1

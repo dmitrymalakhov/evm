@@ -57,6 +57,13 @@
       "when": 1732400000000,
       "tag": "0007_add_alcohol_preferences",
       "breakpoints": false
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1732500000000,
+      "tag": "0008_add_grade_and_payment",
+      "breakpoints": false
     }
   ]
 }

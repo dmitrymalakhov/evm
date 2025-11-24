@@ -664,6 +664,8 @@ export const api = {
         otpCode: string;
         status: "active" | "pending";
         telegramId?: string;
+        grade?: number;
+        hasPaid?: boolean;
         createdAt: string;
         updatedAt: string;
       }>
@@ -682,6 +684,8 @@ export const api = {
       otpCode: string;
       status: "active" | "pending";
       telegramId?: string;
+      grade?: number;
+      hasPaid?: boolean;
       createdAt: string;
       updatedAt: string;
     }>(`/admin/users/${userId}`),
@@ -695,6 +699,8 @@ export const api = {
     tabNumber?: string;
     otpCode?: string;
     status?: "active" | "pending";
+    grade?: number;
+    hasPaid?: boolean;
   }) =>
     request<{
       id: string;
@@ -708,6 +714,8 @@ export const api = {
       otpCode: string;
       status: "active" | "pending";
       telegramId?: string;
+      grade?: number;
+      hasPaid?: boolean;
       createdAt: string;
       updatedAt: string;
     }>("/admin/users", {
@@ -726,6 +734,8 @@ export const api = {
       tabNumber?: string;
       otpCode?: string;
       status?: "active" | "pending";
+      grade?: number;
+      hasPaid?: boolean;
     },
   ) =>
     request<{
@@ -740,6 +750,8 @@ export const api = {
       otpCode: string;
       status: "active" | "pending";
       telegramId?: string;
+      grade?: number;
+      hasPaid?: boolean;
       createdAt: string;
       updatedAt: string;
     }>(`/admin/users/${userId}`, {

@@ -206,14 +206,16 @@ export function registerTelegramUser(
  * Получает список всех пользователей, зарегистрированных через Telegram
  * Возвращает только пользователей, у которых есть telegramId в базе данных (подписанных на бота)
  * Это поле используется для рассылок через Telegram бота
+ * @param hasPaidFilter - фильтр по статусу оплаты: true - только оплатившие, false - только не оплатившие, undefined - все
  */
-export function getTelegramUsers(): Array<{
+export function getTelegramUsers(hasPaidFilter?: boolean): Array<{
     id: string;
     telegramId: string;
     name: string;
     email: string;
     tabNumber: string;
     status: string;
+    hasPaid: boolean | null;
     createdAt: Date;
 }> {
     // Получаем всех пользователей с telegramId (не null и не пустой строкой)
@@ -226,18 +228,32 @@ export function getTelegramUsers(): Array<{
             email: users.email,
             tabNumber: users.tabNumber,
             status: users.status,
+            hasPaid: users.hasPaid,
             createdAt: users.createdAt,
         })
         .from(users)
         .all();
 
     // Фильтруем только пользователей с заполненным telegramId (подписанных на бота)
-    const telegramUsers = allUsers.filter(
+    let telegramUsers = allUsers.filter(
         (user) => user.telegramId && user.telegramId.trim() !== "",
     );
 
+    // Применяем фильтр по статусу оплаты, если указан
+    if (hasPaidFilter !== undefined) {
+        telegramUsers = telegramUsers.filter((user) => {
+            if (hasPaidFilter === true) {
+                // Только оплатившие (hasPaid === true)
+                return user.hasPaid === true;
+            } else {
+                // Только не оплатившие (hasPaid === false или null)
+                return user.hasPaid !== true;
+            }
+        });
+    }
+
     console.log(
-        `[TELEGRAM-AUTH] Found ${telegramUsers.length} users with telegramId out of ${allUsers.length} total users`,
+        `[TELEGRAM-AUTH] Found ${telegramUsers.length} users with telegramId${hasPaidFilter !== undefined ? ` (hasPaid=${hasPaidFilter})` : ""} out of ${allUsers.length} total users`,
     );
 
     return telegramUsers.map((user) => ({
@@ -247,7 +263,36 @@ export function getTelegramUsers(): Array<{
         email: user.email,
         tabNumber: user.tabNumber,
         status: user.status || "active",
+        hasPaid: user.hasPaid ?? null,
         createdAt: user.createdAt,
     }));
+}
+
+/**
+ * Обновляет грейд пользователя по telegramId
+ */
+export function updateUserGradeByTelegramId(
+    telegramId: string,
+    grade: number,
+): boolean {
+    const user = db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegramId))
+        .get();
+
+    if (!user) {
+        return false;
+    }
+
+    db.update(users)
+        .set({
+            grade,
+            updatedAt: new Date(),
+        })
+        .where(eq(users.telegramId, telegramId))
+        .run();
+
+    return true;
 }
 
