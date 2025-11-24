@@ -6674,142 +6674,19 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
- path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
-  exists: true
-}
-node:events:496
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
-    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
-    at listenInCluster (node:net:1994:12)
-    at node:net:2203:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1973:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 4000
-}
-
-Node.js v22.14.0
-9:58:03 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
-  route: '/uploads',
-  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
-  exists: true
-}
-node:events:496
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
-    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
-    at listenInCluster (node:net:1994:12)
-    at node:net:2203:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1973:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 4000
-}
-
-Node.js v22.14.0
-9:58:22 AM [tsx] change in ./src/services/pre-created-users.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
-  route: '/uploads',
-  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
-  exists: true
-}
-node:events:496
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
-    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
-    at listenInCluster (node:net:1994:12)
-    at node:net:2203:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1973:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 4000
-}
-
-Node.js v22.14.0
-10:10:37 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
-  route: '/uploads',
-  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
-  exists: true
-}
-node:events:496
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
-    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
-    at listenInCluster (node:net:1994:12)
-    at node:net:2203:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1973:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 4000
-}
-
-Node.js v22.14.0
-10:10:39 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
-  route: '/uploads',
-  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
-  exists: true
-}
-node:events:496
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
-    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
-    at listenInCluster (node:net:1994:12)
-    at node:net:2203:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1973:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 4000
-}
-
-Node.js v22.14.0
-10:12:08 AM [tsx] change in ./src/db/schema.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
+4:10:49 PM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
   exists: true
 }
 API server listening on http://0.0.0.0:4000
-10:12:15 AM [tsx] change in ./src/services/telegram-auth.ts Restarting...
-c🔵 [APP] Setting up static file serving: {
+4:14:23 PM [tsx] change in ./src/routes/admin.ts Restarting...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
   exists: true
@@ -6834,8 +6711,19 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-10:12:21 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
+4:14:25 PM [tsx] change in ./src/routes/admin.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+API server listening on http://0.0.0.0:4000
+4:15:02 PM [tsx] change in ./src/routes/admin.ts Restarting...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
   exists: true
@@ -6860,8 +6748,10 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-10:12:35 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
+6:13:14 PM [tsx] change in ./src/routes/telegram.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
   exists: true
@@ -6886,8 +6776,11 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-10:12:50 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
+8:21:06 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
   exists: true
@@ -6912,8 +6805,11 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-10:13:29 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
+8:21:49 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
   exists: true
@@ -6938,8 +6834,21 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-10:14:21 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
+8:29:16 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+API server listening on http://0.0.0.0:4000
+8:30:03 PM [tsx] change in ./src/db/client.ts Restarting...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
   exists: true
@@ -6964,8 +6873,11 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-10:15:05 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
-c🔵 [APP] Setting up static file serving: {
+10:17:27 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
   exists: true
@@ -6979,6 +6891,76 @@ Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
     at listenInCluster (node:net:1994:12)
     at node:net:2203:7
     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+10:17:56 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+10:20:23 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+ternal/process/task_queues:90:21)
 Emitted 'error' event on Server instance at:
     at emitErrorNT (node:net:1973:8)
     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
@@ -9348,7 +9330,7 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-n ./src/services/telegram-auth.ts Rerunning...
+4:10:49 PM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9374,7 +9356,7 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-9:53:07 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
+4:14:23 PM [tsx] change in ./src/routes/admin.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9400,7 +9382,7 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-9:55:35 AM [tsx] change in ./src/services/user-generation.ts Rerunning...
+4:14:25 PM [tsx] change in ./src/routes/admin.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9426,14 +9408,14 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-9:55:45 AM [tsx] change in ./src/services/pre-created-users.ts Rerunning...
+4:15:02 PM [tsx] change in ./src/routes/admin.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
   exists: true
 }
 API server listening on http://0.0.0.0:4000
-9:56:35 AM [tsx] change in ./src/services/pre-created-users.ts Restarting...
+6:13:14 PM [tsx] change in ./src/routes/telegram.ts Restarting...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9459,7 +9441,7 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-9:57:20 AM [tsx] change in ./src/services/pre-created-users.ts Rerunning...
+8:21:06 PM [tsx] change in ./src/db/client.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9485,7 +9467,7 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-9:57:22 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
+8:21:49 PM [tsx] change in ./src/db/client.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9511,7 +9493,7 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-9:57:34 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
+8:29:16 PM [tsx] change in ./src/db/client.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9537,7 +9519,7 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-9:57:52 AM [tsx] change in ./src/services/pre-created-users.ts Rerunning...
+8:30:03 PM [tsx] change in ./src/db/client.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9563,7 +9545,7 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-9:58:03 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
+10:17:27 PM [tsx] change in ./src/db/client.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9589,7 +9571,7 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-9:58:22 AM [tsx] change in ./src/services/pre-created-users.ts Rerunning...
+10:17:56 PM [tsx] change in ./src/db/client.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9615,7 +9597,7 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.14.0
-10:10:37 AM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
+10:20:23 PM [tsx] change in ./src/db/client.ts Rerunning...
 c🔵 [APP] Setting up static file serving: {
   route: '/uploads',
   path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
@@ -9633,6 +9615,15 @@ Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
 Emitted 'error' event on Server instance at:
     at emitErrorNT (node:net:1973:8)
     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+s:90:21) {
   code: 'EADDRINUSE',
   errno: -48,
   syscall: 'listen',
@@ -11962,178 +11953,293 @@ Database migrations applied successfully
   exists: true
 }
 API server listening on http://0.0.0.0:4000
-ams/t1/progress [36m304[0m 0.551 ms - -[0m
-[0mGET /tasks/submissions?taskIds=taskA,taskB [36m304[0m 0.373 ms - -[0m
-[0mGET /tasks/submissions?taskIds=taskA,taskB [36m304[0m 0.329 ms - -[0m
-[0mGET /levels/week/1 [32m200[0m 0.599 ms - 593[0m
-[0mGET /levels/week/1 [36m304[0m 0.811 ms - -[0m
-[0mGET /levels/lvl3/tasks [36m304[0m 0.347 ms - -[0m
-[0mGET /levels/lvl3/tasks [36m304[0m 0.263 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.438 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.663 ms - -[0m
-[0mGET /tasks/submissions?taskIds=taskA,taskB [36m304[0m 0.307 ms - -[0m
-[0mGET /tasks/submissions?taskIds=taskA,taskB [36m304[0m 0.329 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.370 ms - -[0m
-[0mGET /teams/t1 [36m304[0m 0.285 ms - -[0m
-[0mGET /teams/t1/chat [36m304[0m 0.228 ms - -[0m
-[0mGET /teams/t1 [36m304[0m 0.096 ms - -[0m
-[0mGET /teams/t1/ideas [36m304[0m 0.480 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.527 ms - -[0m
-[0mGET /teams/t1 [36m304[0m 0.184 ms - -[0m
-[0mGET /teams/t1/ideas [36m304[0m 0.495 ms - -[0m
-[0mGET /teams/t1/chat [36m304[0m 0.221 ms - -[0m
-[0mGET /teams/t1 [36m304[0m 0.106 ms - -[0m
-[0mGET /teams/t1/ideas [36m304[0m 0.438 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.400 ms - -[0m
-[0mGET /teams/t1 [36m304[0m 0.070 ms - -[0m
-[0mGET /teams/t1/ideas [36m304[0m 0.311 ms - -[0m
-[0mGET /teams/t1/chat [36m304[0m 0.133 ms - -[0m
-[0mGET /teams/t1 [36m304[0m 0.258 ms - -[0m
-[0mGET /teams/t1/ideas [36m304[0m 0.438 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.677 ms - -[0m
-[0mGET /teams/t1/ideas [36m304[0m 0.400 ms - -[0m
-[0mGET /teams/t1/chat [36m304[0m 0.613 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.454 ms - -[0m
-[0mGET /teams/t1/chat [36m304[0m 0.392 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.626 ms - -[0m
-[0mGET /teams/t1/chat [36m304[0m 0.319 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.592 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.147 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.846 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.757 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.683 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.584 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.747 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.070 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.198 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.845 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 4.047 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.474 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.082 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.440 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.036 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.997 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.982 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.341 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.577 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.193 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.983 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.952 ms - -[0m
-[0mGET /teams/t1 [36m304[0m 0.320 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.726 ms - -[0m
-[0mGET /teams/t1/chat [36m304[0m 0.196 ms - -[0m
-[0mGET /teams/t1/ideas [36m304[0m 0.656 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.024 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.347 ms - -[0m
-[0mPOST /teams/t1/ideas/idea1/vote [32m200[0m 6.889 ms - 235[0m
-[0mGET /teams/t1/progress [36m304[0m 1.862 ms - -[0m
-[0mDELETE /teams/t1/ideas/idea1/vote [32m200[0m 4.227 ms - 236[0m
-[0mPOST /teams/t1/ideas/idea1/vote [32m200[0m 4.810 ms - 235[0m
-[0mPOST /teams/t1/ideas/idea2/vote [32m200[0m 2.611 ms - 231[0m
-[0mDELETE /teams/t1/ideas/idea2/vote [32m200[0m 2.499 ms - 232[0m
-[0mGET /teams/t1/progress [36m304[0m 1.458 ms - -[0m
-[0mDELETE /teams/t1/ideas/idea1/vote [32m200[0m 2.940 ms - 236[0m
-[0mGET /teams/t1/progress [36m304[0m 1.940 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.337 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.552 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.342 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.641 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.743 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.337 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.868 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.176 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.935 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.110 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.307 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.551 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.425 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.186 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.484 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.526 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.597 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.059 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.816 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 0.912 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.185 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.990 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.669 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.889 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.761 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.810 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.701 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 5.152 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.200 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.098 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.395 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.445 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.079 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.560 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.720 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.938 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.025 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.749 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.102 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.788 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.375 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.485 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.606 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.341 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.590 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.284 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.740 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.772 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.391 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.164 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.660 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.740 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.300 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.158 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.928 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.784 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.033 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.950 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.501 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.630 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.497 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.366 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.657 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.667 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.121 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.632 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.680 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.780 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.551 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.691 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.129 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.739 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.948 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.520 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.722 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.171 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.500 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.793 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.268 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.405 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.278 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.511 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.943 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.382 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.536 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.557 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.660 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.290 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.184 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.767 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.936 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.396 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.432 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 3.045 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.995 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 4.455 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.712 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.622 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 2.645 ms - -[0m
-[0mGET /teams/t1/progress [36m304[0m 1.953 ms - -[0m
+4:10:49 PM [tsx] change in ./src/services/telegram-auth.ts Restarting...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+4:14:23 PM [tsx] change in ./src/routes/admin.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+4:14:25 PM [tsx] change in ./src/routes/admin.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+4:15:02 PM [tsx] change in ./src/routes/admin.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+6:13:14 PM [tsx] change in ./src/routes/telegram.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+8:21:06 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+8:21:49 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+8:29:16 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+8:30:03 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+API server listening on http://0.0.0.0:4000
+10:17:27 PM [tsx] change in ./src/db/client.ts Restarting...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+API server listening on http://0.0.0.0:4000
+10:17:56 PM [tsx] change in ./src/db/client.ts Restarting...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+10:20:23 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+API server listening on http://0.0.0.0:4000
+953 ms - -[0m
 [0mGET /teams/t1/progress [36m304[0m 2.378 ms - -[0m
 [0mGET /teams/t1/progress [36m304[0m 3.354 ms - -[0m
 [0mGET /teams/t1/progress [36m304[0m 3.217 ms - -[0m
@@ -13891,6 +13997,254 @@ Emitted 'error' event on Server instance at:
 Node.js v22.14.0
 2:10:23 PM [tsx] change in ./src/routes/telegram.ts Rerunning...
 cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+4:10:49 PM [tsx] change in ./src/services/telegram-auth.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+4:14:23 PM [tsx] change in ./src/routes/admin.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+API server listening on http://0.0.0.0:4000
+4:14:25 PM [tsx] change in ./src/routes/admin.ts Restarting...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+4:15:02 PM [tsx] change in ./src/routes/admin.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+6:13:14 PM [tsx] change in ./src/routes/telegram.ts Rerunning...
+cApplying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+API server listening on http://0.0.0.0:4000
+8:21:06 PM [tsx] change in ./src/db/client.ts Restarting...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+API server listening on http://0.0.0.0:4000
+8:21:49 PM [tsx] change in ./src/db/client.ts Restarting...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+API server listening on http://0.0.0.0:4000
+8:29:16 PM [tsx] change in ./src/db/client.ts Restarting...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+8:30:03 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+10:17:27 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v22.14.0
+10:17:56 PM [tsx] change in ./src/db/client.ts Rerunning...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
+Database migrations applied successfully
+🔵 [APP] Setting up static file serving: {
+  route: '/uploads',
+  path: '/Users/dmitrii.malakhov/git/evm/api/uploads',
+  exists: true
+}
+API server listening on http://0.0.0.0:4000
+10:20:23 PM [tsx] change in ./src/db/client.ts Restarting...
+cDatabase file exists at /Users/dmitrii.malakhov/git/evm/api/sqlite/evm.sqlite, applying migrations if needed...
+Applying database migrations...
 Database migrations applied successfully
 🔵 [APP] Setting up static file serving: {
   route: '/uploads',

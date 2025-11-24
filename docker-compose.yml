@@ -5,12 +5,19 @@ services:
     build:
       context: .
       dockerfile: api/Dockerfile
+      shm_size: '256m'
     container_name: evm-api
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
     ports:
       - "${API_PORT:-4000}:4000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=4000
       - HOST=0.0.0.0
       # База данных сохраняется в volume api_data
@@ -42,7 +49,7 @@ services:
     ports:
       - "${WEB_PORT:-3000}:3000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3000
       - HOSTNAME=0.0.0.0
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000}
@@ -65,7 +72,7 @@ services:
     container_name: evm-telegram-bot
     restart: unless-stopped
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - BOT_TOKEN=${BOT_TOKEN}
       - API_BASE_URL=${API_BASE_URL:-http://api:4000}
       - API_TIMEOUT=${API_TIMEOUT:-10000}

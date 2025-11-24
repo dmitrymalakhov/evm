@@ -5,3 +5,5 @@ ALTER TABLE `users` ADD COLUMN `grade` integer;
 ALTER TABLE `users` ADD COLUMN `has_paid` integer;
 
 
+
+

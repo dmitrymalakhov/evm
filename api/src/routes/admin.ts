@@ -909,7 +909,11 @@ router.post("/users", (request, response) => {
     }
 
     const payload = userSchema.parse(request.body);
-    const created = createUser(payload);
+    const created = createUser({
+      ...payload,
+      grade: payload.grade ?? undefined,
+      hasPaid: payload.hasPaid ?? undefined,
+    });
 
     if (!created) {
       return response.status(500).json({ message: "Не удалось создать пользователя" });
@@ -956,7 +960,11 @@ router.put("/users/:userId", (request, response) => {
     }
 
     const payload = userUpdateSchema.parse(request.body);
-    const updated = updateUser(request.params.userId, payload);
+    const updated = updateUser(request.params.userId, {
+      ...payload,
+      grade: payload.grade ?? undefined,
+      hasPaid: payload.hasPaid ?? undefined,
+    });
 
     if (!updated) {
       return response.status(404).json({ message: "Пользователь не найден" });

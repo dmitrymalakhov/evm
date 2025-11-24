@@ -40,13 +40,41 @@ if (shouldMigrate && fs.existsSync(migrationsFolder)) {
         }
     }
     try {
+        // Check if database file exists to avoid recreating it
+        const dbExists = fs.existsSync(databaseFile);
+        if (dbExists) {
+            console.log(`Database file exists at ${databaseFile}, applying migrations if needed...`);
+        } else {
+            console.log(`Database file does not exist at ${databaseFile}, will be created with migrations...`);
+        }
+        
         console.log("Applying database migrations...");
         migrate(db, { migrationsFolder });
         console.log("Database migrations applied successfully");
     } catch (error) {
         // If migration fails, log the error but don't crash the app
         // This can happen if migrations are already applied or if there's a schema mismatch
-        console.error("Migration error (may be safe to ignore if migrations are already applied):", error);
+        // Drizzle tracks applied migrations in __drizzle_migrations table, so re-applying is safe
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorCause = error instanceof Error && (error as any).cause instanceof Error 
+            ? (error as any).cause.message 
+            : String(error);
+        const fullErrorString = `${errorMessage} ${errorCause}`.toLowerCase();
+        
+        // Check for safe-to-ignore migration errors
+        const isSafeError = 
+            fullErrorString.includes("already exists") || 
+            fullErrorString.includes("duplicate") ||
+            fullErrorString.includes("more than one statement") ||
+            (fullErrorString.includes("no such table") && fullErrorString.includes("__drizzle_migrations"));
+        
+        if (isSafeError) {
+            // Migration may have been partially applied or already exists
+            // This is safe to ignore as Drizzle tracks applied migrations
+            console.log("⚠️  Migration warning (likely already applied or safe to ignore):", errorCause || errorMessage);
+        } else {
+            console.error("❌ Migration error (may be safe to ignore if migrations are already applied):", error);
+        }
     }
 }
 

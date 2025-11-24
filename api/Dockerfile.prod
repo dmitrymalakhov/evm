@@ -1,0 +1,39 @@
+# Production API Dockerfile
+# Expects pre-built dist/ directory
+FROM node:20-alpine AS runner
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@10.21.0 --activate
+
+# Install dependencies for better-sqlite3 and health check tools
+RUN apk add --no-cache python3 make g++ sqlite wget procps
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Create app user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nodejs
+
+# Copy package files and install production dependencies only
+COPY api/package.json api/pnpm-lock.yaml api/pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy pre-built application
+COPY api/dist ./dist
+COPY api/drizzle ./drizzle
+
+# Create necessary directories (will be overridden by volumes, but needed for initial setup)
+RUN mkdir -p data uploads/tasks && \
+    chown -R nodejs:nodejs data uploads
+
+USER nodejs
+
+EXPOSE 4000
+
+ENV PORT=4000
+ENV HOST=0.0.0.0
+
+CMD ["node", "dist/index.js"]
+

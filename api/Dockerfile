@@ -5,7 +5,7 @@ FROM node:20-alpine AS base
 RUN corepack enable && corepack prepare pnpm@10.21.0 --activate
 
 # Install dependencies for better-sqlite3 and health check tools
-RUN apk add --no-cache python3 make g++ sqlite wget
+RUN apk add --no-cache python3 make g++ sqlite wget procps
 
 FROM base AS deps
 WORKDIR /app
@@ -30,7 +30,14 @@ COPY api/drizzle ./drizzle
 
 # Build TypeScript
 WORKDIR /app
-RUN pnpm build
+RUN echo "=== Build Environment ===" && \
+    echo "Available memory:" && free -m && \
+    echo "Node version:" && node --version && \
+    echo "Files to compile:" && find src -name "*.ts" | wc -l && \
+    echo "=== Starting TypeScript compilation ===" && \
+    pnpm build && \
+    echo "=== TypeScript compilation completed! ===" && \
+    echo "Built files:" && ls -la dist/ | head -20
 
 FROM base AS runner
 WORKDIR /app

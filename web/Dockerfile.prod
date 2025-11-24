@@ -1,0 +1,56 @@
+# Production Web (Next.js) Dockerfile
+# Expects pre-built .next/ directory
+FROM node:20-alpine AS runner
+
+# Install wget for health checks
+RUN apk add --no-cache wget
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV HUSKY=0
+ENV CI=true
+
+# Create app user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@10.21.0 --activate
+
+# Copy package files first for dependency installation
+COPY --chown=nextjs:nodejs web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
+
+# Install production dependencies in a separate location
+# Standalone output sometimes misses some dependencies (like styled-jsx)
+RUN mkdir -p /tmp/installed && \
+    cp package.json pnpm-lock.yaml pnpm-workspace.yaml /tmp/installed/ && \
+    cd /tmp/installed && \
+    pnpm install --frozen-lockfile --prod --ignore-scripts
+
+# Copy pre-built Next.js standalone application
+COPY --chown=nextjs:nodejs web/.next/standalone ./
+
+# Copy missing dependencies from installed to standalone node_modules
+# Копируем styled-jsx и другие критичные модули напрямую
+RUN if [ -d /tmp/installed/node_modules/styled-jsx ] && [ ! -d ./node_modules/styled-jsx ]; then \
+    echo "Copying styled-jsx"; \
+    cp -r /tmp/installed/node_modules/styled-jsx ./node_modules/; \
+    fi && \
+    rm -rf /tmp/installed
+
+# Copy static files (must be in .next/static relative to standalone)
+COPY --chown=nextjs:nodejs web/.next/static ./.next/static
+# Copy public files
+COPY --chown=nextjs:nodejs web/public ./public
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+CMD ["node", "server.js"]
+
