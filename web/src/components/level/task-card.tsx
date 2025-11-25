@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,11 +51,7 @@ export function TaskCard({ task, index, onSubmit, onUploadFiles }: TaskCardProps
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-    >
+    <div>
       <Card
         className={cn(
           "border-evm-steel/40 bg-black/40",
@@ -148,7 +143,7 @@ export function TaskCard({ task, index, onSubmit, onUploadFiles }: TaskCardProps
           )}
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 }
 

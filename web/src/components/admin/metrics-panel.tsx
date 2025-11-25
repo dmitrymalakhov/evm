@@ -23,6 +23,19 @@ export function MetricsPanel({ metrics }: MetricsPanelProps) {
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
+          <CardTitle>Зарегистрированные пользователи</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-4xl font-bold text-[#b8473f]">
+            {metrics.registeredUsersCount}
+          </div>
+          <p className="text-sm text-muted-foreground mt-2">
+            Пользователей прошли регистрацию
+          </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>DAU (ежедневно)</CardTitle>
         </CardHeader>
         <CardContent className="h-64">

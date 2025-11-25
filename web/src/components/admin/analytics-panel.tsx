@@ -82,7 +82,7 @@ export function AnalyticsPanel() {
         <div className="flex gap-2 border-b border-evm-steel/20">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`px-4 py-2 text-xs uppercase tracking-[0.18em] transition-colors ${
+            className={`px-4 py-2 text-xs uppercase tracking-[0.18em] ${
               activeTab === "overview"
                 ? "border-b-2 border-evm-accent text-evm-accent"
                 : "text-evm-muted hover:text-foreground"
@@ -92,7 +92,7 @@ export function AnalyticsPanel() {
           </button>
           <button
             onClick={() => setActiveTab("users")}
-            className={`px-4 py-2 text-xs uppercase tracking-[0.18em] transition-colors ${
+            className={`px-4 py-2 text-xs uppercase tracking-[0.18em] ${
               activeTab === "users"
                 ? "border-b-2 border-evm-accent text-evm-accent"
                 : "text-evm-muted hover:text-foreground"
@@ -102,7 +102,7 @@ export function AnalyticsPanel() {
           </button>
           <button
             onClick={() => setActiveTab("tasks")}
-            className={`px-4 py-2 text-xs uppercase tracking-[0.18em] transition-colors ${
+            className={`px-4 py-2 text-xs uppercase tracking-[0.18em] ${
               activeTab === "tasks"
                 ? "border-b-2 border-evm-accent text-evm-accent"
                 : "text-evm-muted hover:text-foreground"
@@ -112,7 +112,7 @@ export function AnalyticsPanel() {
           </button>
           <button
             onClick={() => setActiveTab("activity")}
-            className={`px-4 py-2 text-xs uppercase tracking-[0.18em] transition-colors ${
+            className={`px-4 py-2 text-xs uppercase tracking-[0.18em] ${
               activeTab === "activity"
                 ? "border-b-2 border-evm-accent text-evm-accent"
                 : "text-evm-muted hover:text-foreground"

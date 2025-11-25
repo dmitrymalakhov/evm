@@ -142,7 +142,6 @@ export default function AdminPage() {
   const [collapsedSubmissionGroups, setCollapsedSubmissionGroups] = useState<Set<string>>(new Set());
   const [submissionPage, setSubmissionPage] = useState(1);
   const [activeTab, setActiveTab] = useState<AdminTabId>("levels");
-  const [isDrawingAllSecretSanta, setIsDrawingAllSecretSanta] = useState(false);
   const [preCreatedUsers, setPreCreatedUsers] = useState<PreCreatedUser[]>([]);
   const [allUsers, setAllUsers] = useState<Array<{
     id: string;
@@ -992,7 +991,7 @@ export default function AdminPage() {
               disabled={tab.disabled}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "rounded-md border border-evm-steel/30 bg-black/40 p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-evm-accent/50",
+                "rounded-md border border-evm-steel/30 bg-black/40 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-evm-accent/50",
                 tab.disabled && "cursor-not-allowed opacity-40",
                 activeTab === tab.id
                   ? "border-evm-accent/60 bg-evm-accent/10 shadow-[0_0_20px_rgba(184,71,63,0.2)]"
@@ -1688,58 +1687,13 @@ export default function AdminPage() {
 
         {activeTab === "secret-santa" && (
           <Card>
-            <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <CardHeader>
               <div>
                 <CardTitle>Тайный Санта</CardTitle>
                 <p className="text-xs uppercase tracking-[0.22em] text-evm-muted">
                   Управление активностью и участниками
                 </p>
               </div>
-              {secretSantaState && secretSantaState.stats.total >= 2 && (
-                <Button
-                  onClick={async () => {
-                    const waitingCount = secretSantaState.participants.filter(
-                      (p) => p.status === "waiting"
-                    ).length;
-                    if (waitingCount < 2) {
-                      toast.error("Нужно минимум 2 участника для жеребьевки");
-                      return;
-                    }
-
-                    if (
-                      !confirm(
-                        `Запустить жеребьевку для всех ${waitingCount} участников? Это действие нельзя отменить.`
-                      )
-                    ) {
-                      return;
-                    }
-
-                    try {
-                      setIsDrawingAllSecretSanta(true);
-                      await api.drawAllSecretSanta();
-                      // Reload admin state after drawing
-                      const adminState = await api.getSecretSantaAdminState();
-                      setSecretSantaState(adminState);
-                      toast.success("Жеребьевка завершена!", {
-                        description: `Все ${waitingCount} участников получили своих получателей.`,
-                      });
-                    } catch (error) {
-                      toast.error("Не удалось запустить жеребьевку", {
-                        description:
-                          error instanceof Error ? error.message : "Ошибка жеребьевки",
-                      });
-                    } finally {
-                      setIsDrawingAllSecretSanta(false);
-                    }
-                  }}
-                  disabled={isDrawingAllSecretSanta}
-                  variant="outline"
-                >
-                  {isDrawingAllSecretSanta
-                    ? "Жеребьевка..."
-                    : "Запустить жеребьевку для всех"}
-                </Button>
-              )}
             </CardHeader>
             <CardContent className="space-y-6">
               {secretSantaState ? (

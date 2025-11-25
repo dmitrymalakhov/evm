@@ -324,7 +324,9 @@ async function sendUserCredentials(
   await ctx.reply(
     "🌐 <b>Следующий этап синхронизации:</b>\n\n" +
     "Для продолжения работы с матрицей и получения координат <b>КиберЁлки 2077</b> необходимо подключиться к основному порталу:\n\n" +
-    "🔗 <b>cyberelka2077.ru</b>\n\n" +
+    "🔗 <b>http://207.154.207.198/</b>\n\n" +
+    "⚡ <i>Система E.V.M. автоматически сгенерировала координаты узла матрицы.</i>\n" +
+    "🌐 <i>Прямой доступ к ядру системы без DNS-маскировки для максимальной скорости синхронизации.</i>\n\n" +
     "📋 <b>Протокол подключения:</b>\n\n" +
     "1️⃣ Войдите на портал, используя ваши идентификаторы доступа\n" +
     "2️⃣ Изучите структуру матрицы и доступные уровни синхронизации\n" +
@@ -893,7 +895,8 @@ bot.command("help", async (ctx: Context) => {
     "💡 После синхронизации вы получите идентификатор доступа и ключ для входа в матрицу E.V.M.\n\n" +
     "🌐 <b>Важно:</b>\n" +
     "Для прохождения 6 уровней синхронизации и получения координат КиберЁлки 2077 зайдите на портал:\n" +
-    "🔗 <b>cyberelka2077.ru</b>",
+    "🔗 <b>http://207.154.207.198/</b>\n\n" +
+    "⚡ <i>Система автоматически создала узел матрицы с прямыми координатами для максимальной скорости подключения.</i>",
     {
       parse_mode: "HTML",
       reply_markup: createMainKeyboard(),
@@ -1186,7 +1189,7 @@ bot.on("message", async (ctx: Context) => {
       const amount = getPaymentAmount(grade);
       if (amount !== null) {
         logUserAction(userId, "grade_entered", { grade, amount });
-        
+
         // Сохраняем грейд в базу данных
         try {
           await updateUserGrade(userId.toString(), grade);
@@ -1195,7 +1198,7 @@ bot.on("message", async (ctx: Context) => {
           console.error(`[BOT] Failed to save grade for user ${userId}:`, error);
           // Не прерываем процесс, просто логируем ошибку
         }
-        
+
         await showPaymentInfo(ctx, amount);
         paymentStates.delete(userId);
         return;
@@ -1425,7 +1428,7 @@ bot.callbackQuery(/^broadcast_filter:(paid|unpaid|all)$/, async (ctx: Context) =
 
     const filterType = match[1];
     const adminState = adminStates.get(userId);
-    
+
     if (!adminState || !adminState.data) {
       await ctx.reply("❌ <b>Ошибка:</b> Данные рассылки не найдены. Начните заново.", { parse_mode: "HTML" });
       adminStates.delete(userId);
@@ -1435,7 +1438,7 @@ bot.callbackQuery(/^broadcast_filter:(paid|unpaid|all)$/, async (ctx: Context) =
     // Определяем фильтр по оплате
     let hasPaidFilter: boolean | undefined;
     let filterText: string;
-    
+
     if (filterType === "paid") {
       hasPaidFilter = true;
       filterText = "✅ только оплатившим";
@@ -1501,7 +1504,7 @@ bot.callbackQuery(/^broadcast_filter:(paid|unpaid|all)$/, async (ctx: Context) =
 
     let previewText = "";
     if (adminState.data.type === "text") {
-      previewText = (adminState.data.message || "").substring(0, 500) + 
+      previewText = (adminState.data.message || "").substring(0, 500) +
         ((adminState.data.message || "").length > 500 ? "\n\n... (обрезано)" : "");
     } else {
       previewText = `${typeEmoji[adminState.data.type]} ${typeName[adminState.data.type]}`;

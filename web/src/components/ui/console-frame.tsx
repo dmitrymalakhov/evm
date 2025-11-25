@@ -1,19 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 
-type ConsoleFrameProps = Omit<
-  React.HTMLAttributes<HTMLDivElement>,
-  | "onDrag"
-  | "onDragStart"
-  | "onDragEnd"
-  | "onAnimationStart"
-  | "onAnimationEnd"
-  | "onAnimationIteration"
-> & {
+type ConsoleFrameProps = React.HTMLAttributes<HTMLDivElement> & {
   glow?: "accent" | "matrix" | "none";
 };
 
@@ -24,10 +15,7 @@ export function ConsoleFrame({
   ...props
 }: ConsoleFrameProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+    <div
       className={cn(
         "crt-frame relative border border-evm-steel/40 bg-evm-panel/80 p-6 backdrop-blur-sm",
         glow === "accent" && "shadow-[0_0_24px_rgba(184,71,63,0.3)]",
@@ -38,7 +26,7 @@ export function ConsoleFrame({
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(184,71,63,0.15),transparent_35%),radial-gradient(circle_at_90%_20%,rgba(8,200,112,0.12),transparent_40%)] opacity-80 mix-blend-screen" />
       <div className="relative">{children}</div>
-    </motion.div>
+    </div>
   );
 }
 

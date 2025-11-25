@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { LucideProps, Shield } from "lucide-react";
 
 import { NAV_LINKS } from "@/lib/navigation";
@@ -19,15 +18,12 @@ export function Sidebar() {
         <div className="text-xs uppercase tracking-[0.38em] text-evm-muted">
           Цифровая сеть
         </div>
-        <motion.h1
+        <h1
           className="text-glitch text-2xl font-semibold uppercase tracking-[0.32em]"
           data-text="E.V.M."
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
         >
           E.V.M.
-        </motion.h1>
+        </h1>
         <p className="text-[0.65rem] uppercase tracking-[0.28em] text-evm-muted">
           ПРОЕКТ ЁЛКА • 1977 → 2077
         </p>
@@ -42,7 +38,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "group relative flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold uppercase tracking-[0.22em] transition-all",
+                "group relative flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold uppercase tracking-[0.22em]",
                 isActive
                   ? "bg-evm-accent/15 text-evm-accent"
                   : "text-evm-muted hover:bg-white/5 hover:text-foreground",
@@ -50,17 +46,13 @@ export function Sidebar() {
             >
               <Icon
                 className={cn(
-                  "h-4 w-4 transition-colors",
+                  "h-4 w-4",
                   isActive ? "text-evm-accent" : "text-evm-muted",
                 )}
               />
               {item.label}
               {isActive ? (
-                <motion.span
-                  layoutId="sidebar-active"
-                  className="absolute inset-0 -z-10 rounded-md border border-evm-accent/50 shadow-[0_0_12px_rgba(184,71,63,0.35)]"
-                  transition={{ duration: 0.2 }}
-                />
+                <span className="absolute inset-0 -z-10 rounded-md border border-evm-accent/50 shadow-[0_0_12px_rgba(184,71,63,0.35)]" />
               ) : null}
             </Link>
           );
@@ -83,11 +75,7 @@ export function Sidebar() {
             />
             Admin
             {pathname.startsWith("/admin") ? (
-              <motion.span
-                layoutId="sidebar-active"
-                className="absolute inset-0 -z-10 rounded-md border border-evm-accent/50 shadow-[0_0_12px_rgba(184,71,63,0.35)]"
-                transition={{ duration: 0.2 }}
-              />
+              <span className="absolute inset-0 -z-10 rounded-md border border-evm-accent/50 shadow-[0_0_12px_rgba(184,71,63,0.35)]" />
             ) : null}
           </Link>
         )}

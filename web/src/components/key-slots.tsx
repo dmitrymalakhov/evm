@@ -1,17 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 import { cn } from "@/lib/utils";
 
 type KeySlotsProps = {
     collected: string[];
     total?: number;
-};
-
-const slotVariants = {
-    initial: { opacity: 0, y: 8 },
-    animate: { opacity: 1, y: 0 },
 };
 
 export function KeySlots({ collected, total = 6 }: KeySlotsProps) {
@@ -24,12 +17,8 @@ export function KeySlots({ collected, total = 6 }: KeySlotsProps) {
     return (
         <div className="grid grid-cols-3 gap-3">
             {slots.map((slot) => (
-                <motion.div
+                <div
                     key={slot.index}
-                    variants={slotVariants}
-                    initial="initial"
-                    animate="animate"
-                    transition={{ delay: slot.index * 0.05 }}
                     className={cn(
                         "flex h-20 flex-col justify-between rounded-md border border-dashed border-evm-steel/50 bg-black/25 p-3",
                         slot.filled &&
@@ -47,7 +36,7 @@ export function KeySlots({ collected, total = 6 }: KeySlotsProps) {
                     >
                         {slot.filled ? "Ключ сохранён" : "Пусто"}
                     </span>
-                </motion.div>
+                </div>
             ))}
         </div>
     );

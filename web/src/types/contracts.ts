@@ -134,6 +134,7 @@ export type AdminMetrics = {
   dau: MetricPoint[];
   wau: MetricPoint[];
   funnel: Array<{ step: string; value: number }>;
+  registeredUsersCount: number;
 };
 
 export type ValidatorResponse = {

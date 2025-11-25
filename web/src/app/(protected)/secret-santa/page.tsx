@@ -276,7 +276,7 @@ export default function SecretSantaPage() {
               <div
                 key={phase.title}
                 className={cn(
-                  "rounded-lg border border-white/15 bg-white/5 p-3 text-sm transition-all space-y-1.5",
+                  "rounded-lg border border-white/15 bg-white/5 p-3 text-sm transition-all duration-75 space-y-1.5",
                   phase.status === "active" ? "border-evm-accent/60 bg-evm-accent/10" : "",
                 )}
               >

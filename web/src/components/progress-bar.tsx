@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 type ProgressBarProps = {
   value: number;
   label?: string;
@@ -18,11 +16,9 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
         </div>
       ) : null}
       <div className="relative h-3 w-full overflow-hidden rounded-full border border-evm-steel/40 bg-black/40">
-        <motion.div
+        <div
           className="absolute inset-y-0 left-0 origin-left border-r border-evm-accent/70 bg-gradient-to-r from-evm-accent/80 via-evm-accent to-evm-accent/80 shadow-[0_0_18px_rgba(184,71,63,0.45)]"
-          initial={{ width: 0 }}
-          animate={{ width: `${clamped}%` }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          style={{ width: `${clamped}%` }}
         />
       </div>
     </div>

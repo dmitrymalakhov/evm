@@ -36,6 +36,34 @@
       "when": 1732100000000,
       "tag": "0004_add_secret_santa",
       "breakpoints": false
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1732200000000,
+      "tag": "0005_add_user_status",
+      "breakpoints": false
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1732300000000,
+      "tag": "0006_add_telegram_id",
+      "breakpoints": false
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1732400000000,
+      "tag": "0007_add_alcohol_preferences",
+      "breakpoints": false
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1732500000000,
+      "tag": "0008_add_grade_and_payment",
+      "breakpoints": false
     }
   ]
 }

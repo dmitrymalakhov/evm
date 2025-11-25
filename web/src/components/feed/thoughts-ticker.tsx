@@ -1,22 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { motion, useAnimation } from "framer-motion";
+import { motion } from "framer-motion";
 
 import { useFeedStore } from "@/store/use-feed-store";
 import { formatRelative } from "@/lib/utils";
 
 export function ThoughtsTicker() {
   const { thoughts, load } = useFeedStore();
-  const controls = useAnimation();
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  useEffect(() => {
-    void controls.start({ opacity: [0.6, 1, 0.6] });
-  }, [thoughts, controls]);
 
   if (thoughts.length === 0) {
     return (

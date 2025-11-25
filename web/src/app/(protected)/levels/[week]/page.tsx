@@ -13,7 +13,6 @@ import { ProgressBar } from "@/components/progress-bar";
 import { ConsoleFrame } from "@/components/ui/console-frame";
 import { TeletypeText } from "@/components/ui/teletype-text";
 import { api } from "@/services/api";
-import { Timer } from "@/components/timer";
 
 export default function LevelWeekPage() {
   const params = useParams<{ week: string }>();
@@ -180,32 +179,6 @@ export default function LevelWeekPage() {
   const activeWeek = currentLevel?.iteration?.currentWeek;
   const totalWeeks = currentLevel?.iteration?.totalWeeks ?? 0;
   const currentWeek = weekNumber || currentLevel?.week || 0;
-  const closesAtTarget = useMemo(() => {
-    const target = currentLevel?.closesAt;
-    if (!target || target.trim() === "") {
-      // If no closesAt, use default (24 hours from now)
-      const defaultTarget = new Date(Date.now() + 86_400_000).toISOString();
-      if (process.env.NODE_ENV === "development") {
-        console.warn("[Timer] No closesAt provided, using default:", defaultTarget);
-      }
-      return defaultTarget;
-    }
-    // Validate the date
-    const parsedDate = new Date(target);
-    if (isNaN(parsedDate.getTime())) {
-      // Invalid date, use default
-      const defaultTarget = new Date(Date.now() + 86_400_000).toISOString();
-      if (process.env.NODE_ENV === "development") {
-        console.warn("[Timer] Invalid closesAt date:", target, "using default:", defaultTarget);
-      }
-      return defaultTarget;
-    }
-    // Debug: log the target date
-    if (process.env.NODE_ENV === "development") {
-      console.log("[Timer] closesAtTarget:", target, "parsed:", parsedDate, "isValid:", !isNaN(parsedDate.getTime()));
-    }
-    return target;
-  }, [currentLevel?.closesAt]);
   const totalKeySlots = currentLevel?.iteration?.totalWeeks ?? 6;
   const unlockedKeyCount = unlockedKeys.length;
   const isActiveWeek = activeWeek === currentWeek;
@@ -346,21 +319,13 @@ export default function LevelWeekPage() {
                 После отправки решения карточка автоматически обновится.
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-md border border-evm-steel/40 bg-black/20 p-4">
-                <Timer target={closesAtTarget} label="До конца недели" />
-              </div>
-              <div className="rounded-md border border-evm-accent/30 bg-evm-accent/5 p-4">
-                <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
-                  Открытые ключи
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-evm-accent">
-                  {unlockedKeyCount > 0 ? unlockedKeyCount : "—"}
-                </p>
-                <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-evm-muted">
-                  {totalKeySlots > 0 ? `из ${totalKeySlots}` : "без ограничения"}
-                </p>
-              </div>
+            <div className="rounded-md border border-evm-accent/30 bg-evm-accent/5 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-evm-muted">
+                Открытые ключи
+              </p>
+              <p className="mt-2 text-3xl font-semibold text-evm-accent">
+                {unlockedKeyCount}
+              </p>
             </div>
           </ConsoleFrame>
 

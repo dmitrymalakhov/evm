@@ -123,8 +123,21 @@ if [ "$DEPLOY_WEB" = true ]; then
     echo "Installing dependencies..."
     pnpm install --frozen-lockfile || { echo "Failed to install Web dependencies"; exit 1; }
     
-    echo "Building Web (Next.js)..."
-    pnpm run build || { echo "Failed to build Web"; exit 1; }
+    # Load NEXT_PUBLIC_API_URL from .env if it exists
+    # For production, default to https://cyberelka2077.ru/api if not set
+    if [ -f ../.env ]; then
+        export $(grep -E '^NEXT_PUBLIC_API_URL=' ../.env | xargs)
+        echo "Using NEXT_PUBLIC_API_URL from .env: ${NEXT_PUBLIC_API_URL:-not set}"
+    fi
+    
+    # Set default for production if not set
+    if [ -z "$NEXT_PUBLIC_API_URL" ]; then
+        NEXT_PUBLIC_API_URL="https://cyberelka2077.ru/api"
+        echo "⚠️  NEXT_PUBLIC_API_URL not set, using default for production: $NEXT_PUBLIC_API_URL"
+    fi
+    
+    echo "Building Web (Next.js) with NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL..."
+    NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL pnpm run build || { echo "Failed to build Web"; exit 1; }
     
     echo "Preparing Web for deployment..."
     mkdir -p ../dist/web

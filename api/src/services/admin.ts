@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/client.js";
 import { adminMetrics, comments, taskSubmissions, users, tasks, teamProgress, userWeekProgress, levels, iterations } from "../db/schema.js";
@@ -10,6 +10,15 @@ import { logUserAction } from "./analytics.js";
 export function getAdminMetrics() {
   const metrics = db.select().from(adminMetrics).limit(1).get();
 
+  // Подсчитываем количество зарегистрированных пользователей (со статусом "active")
+  const registeredUsersResult = db
+    .select({ count: count() })
+    .from(users)
+    .where(eq(users.status, "active"))
+    .get();
+  
+  const registeredUsersCount = registeredUsersResult?.count ?? 0;
+
   // Если метрики не найдены, возвращаем пустые значения
   // Метрики должны рассчитываться из реальных данных пользователей и активности
   if (!metrics) {
@@ -18,10 +27,14 @@ export function getAdminMetrics() {
       dau: [],
       wau: [],
       funnel: [],
+      registeredUsersCount,
     };
   }
 
-  return metrics;
+  return {
+    ...metrics,
+    registeredUsersCount,
+  };
 }
 
 export function listComments() {

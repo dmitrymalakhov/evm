@@ -104,7 +104,7 @@ export default function TeamPage() {
           type="button"
           onClick={() => setActiveTab("chat")}
           className={cn(
-            "px-4 py-3 text-sm font-semibold uppercase tracking-[0.24em] transition-colors border-b-2",
+            "px-4 py-3 text-sm font-semibold uppercase tracking-[0.24em] border-b-2",
             activeTab === "chat"
               ? "border-evm-accent text-evm-accent"
               : "border-transparent text-evm-muted hover:text-foreground"
@@ -116,7 +116,7 @@ export default function TeamPage() {
           type="button"
           onClick={() => setActiveTab("ideas")}
           className={cn(
-            "px-4 py-3 text-sm font-semibold uppercase tracking-[0.24em] transition-colors border-b-2 relative",
+            "px-4 py-3 text-sm font-semibold uppercase tracking-[0.24em] border-b-2 relative",
             activeTab === "ideas"
               ? "border-evm-accent text-evm-accent"
               : "border-transparent text-evm-muted hover:text-foreground"
